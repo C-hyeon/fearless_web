@@ -1,8 +1,11 @@
 import Main from "./pages/Main";
 
-const App =() => {
+const App = () => {
   return (
-    <Main/>
+    <div>
+      <Main/>
+    </div>
+    
   );
 };
 

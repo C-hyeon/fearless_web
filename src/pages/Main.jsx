@@ -6,10 +6,10 @@ const Main = () => {
         <div className="main-container">
             <Header />
             <div className="main-content">
-                <aside className="side-title">Fear<br/>Less</aside>
                 <div className="image-box">
                     <h1>Fearless_image</h1>
                 </div>
+                <aside className="side-title">Fear Less</aside>
             </div>
         </div>
     );

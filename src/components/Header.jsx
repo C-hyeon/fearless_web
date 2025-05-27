@@ -5,7 +5,7 @@ const Header = () => {
         <header className="main-header">
             <div className="logo">FearLess</div>
             <nav className="nav-menu">
-                <button className="nav-btn">홈</button>
+                <span>홈</span>
                 <span>게임 소개</span>
                 <span>다운로드</span>
                 <span>이벤트</span>
