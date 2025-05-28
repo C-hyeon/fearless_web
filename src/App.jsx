@@ -5,7 +5,6 @@ const App = () => {
     <div>
       <Main/>
     </div>
-    
   );
 };
 

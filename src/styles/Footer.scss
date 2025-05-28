@@ -1,0 +1,15 @@
+.main-footer {
+    background-color: #000;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem 2rem;
+
+    .copyright {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        font-size: 8pt;
+    }
+}
