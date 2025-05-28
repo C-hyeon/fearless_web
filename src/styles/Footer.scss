@@ -1,6 +1,8 @@
 @use "color";
 
 .main-footer {
+    position: relative;
+    z-index: 1000;
     background-color: color.$black;
     text-align: center;
     padding: 2rem 1rem;

@@ -8,9 +8,12 @@ const Main = () => {
             <Header />
             <div className="main-content">
                 <div className="image-box">
-                    <h1>Fearless_image</h1>
+                    <div className="left-panel">
+                        <h1>Fear Less</h1>
+                    </div>
+                    <div className="right-panel" />
+                    <svg className="diagonal-line" viewBox="0 0 100 100" preserveAspectRatio="none" />
                 </div>
-                <aside className="side-title">Fear Less</aside>
             </div>
             <Footer />
         </div>
