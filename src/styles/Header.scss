@@ -1,7 +1,8 @@
-// src/styles/Header.scss
+@use "color";
+
 .main-header {
-    background-color: #000;
-    color: #fff;
+    background-color: color.$black;
+    color: color.$white;
     display: flex;
     justify-content: space-between;
     align-items: center;

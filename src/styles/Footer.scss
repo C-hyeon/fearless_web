@@ -1,15 +1,20 @@
-.main-footer {
-    background-color: #000;
-    color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 4rem 2rem;
+@use "color";
 
-    .copyright {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
+.main-footer {
+    background-color: color.$black;
+    text-align: center;
+    padding: 2rem 1rem;
+
+    .center-title {
+        color: color.$white;
+        font-size: 2rem;
+        font-weight: bold;
+        letter-spacing: 0.3rem;
+    }
+
+    .copy-title {
+        color: #ccc;
+        margin-top: 1rem;
         font-size: 8pt;
     }
 }
