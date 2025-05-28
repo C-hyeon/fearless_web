@@ -1,4 +1,4 @@
-# FearLess
+# FearLess [전공연구소모임 & 외부학술대회 연계]
 
 ### Design
 
