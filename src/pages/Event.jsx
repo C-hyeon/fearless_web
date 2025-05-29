@@ -2,7 +2,11 @@ import "../styles/Main.scss";
 
 const Event = () => {
     return (
-        <div className="main-container"></div>
+        <div className="main-container">
+            <div className="main-content">
+                <div className="image-box"></div>
+            </div>
+        </div>
     );
 };
 
