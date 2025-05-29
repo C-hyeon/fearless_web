@@ -1,8 +1,8 @@
-@use "color";
+@use "Nesting";
 
 .main-container {
     width: 100%;
-    height: 100vh;
+    height: auto;
     background: linear-gradient(-135deg, #f7f7f7 25%, #eeeeee 25%, #eeeeee 50%, #f7f7f7 50%, #f7f7f7 75%, #eeeeee 75%);
     background-size: 320px 320px;
 }
@@ -15,12 +15,12 @@
 
     .image-box {
         position: relative;
-        width: 1000px;
+        width: 1500px;
         height: 700px;
         border-radius: 40px;
         overflow: hidden;
         display: flex;
-        background-color: color.$white;
+        background-color: Nesting.$white;
 
         .left-panel {
             flex: 10%;
@@ -32,7 +32,7 @@
 
             h1 {
                 font-family: 'PyeongChang-Bold';
-                color: color.$black;
+                color: Nesting.$black;
                 font-size: 5rem;
                 letter-spacing: 0.1rem;
                 margin: 0;
@@ -59,3 +59,68 @@
         }
     }
 }
+
+.main-section {
+    display: flex;
+    width: 100%;
+    height: 50vh;
+    border-radius: 100px;
+    font-family: Nesting.$main_font_Bold;
+    overflow: hidden;
+    background: Nesting.$black;
+
+    .main-panel {
+        background-color: Nesting.$main_color;
+        color: Nesting.$black;
+        width: 360px;
+        padding: 40px 20px;
+        clip-path: polygon(0 0, 100% 0, 70% 100%, 0% 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        z-index: 2;
+
+        h2 {
+            font-size: 36px;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .sub {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .number {
+            font-size: 72px;
+            font-weight: 900;
+            margin-top: 16px;
+        }
+    }
+
+    .main-background {
+        flex: 1;
+        background-image: url('');
+        background-size: cover;
+        background-position: center;
+        position: relative;
+
+        .main-overlay {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 20px 30px;
+            background: Nesting.$black;
+            border-top: 5px solid Nesting.$main_color;
+
+            h3 {
+                color: Nesting.$main_color;
+                font-size: 35px;
+                margin: 0;
+            }
+        }
+    }
+}
+
+

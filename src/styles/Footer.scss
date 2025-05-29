@@ -1,22 +1,22 @@
-@use "color";
+@use "Nesting";
 
 .main-footer {
     position: relative;
     z-index: 1000;
-    background-color: color.$black;
+    background-color: Nesting.$black;
     text-align: center;
     padding: 2rem 1rem;
 
     .center-title {
-        color: color.$white;
-        font-family: 'PyeongChang-Bold';
+        color: Nesting.$white;
+        font-family: Nesting.$main_font_Bold;
         font-size: 2rem;
         font-weight: bold;
         letter-spacing: 0.3rem;
     }
 
     .copy-title {
-        font-family: 'PyeongChang-Light';
+        font-family: Nesting.$main_font_Light;
         color: #ccc;
         margin-top: 1rem;
         font-size: 8pt;
