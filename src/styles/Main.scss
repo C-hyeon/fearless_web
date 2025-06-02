@@ -69,8 +69,9 @@
 
 // 메인 홈 메뉴
 .main-section {
+    margin: 0 auto;
     display: flex;
-    width: 100%;
+    width: 60%;
     height: 50vh;
     border-radius: 100px;
     font-family: Nesting.$main_font_Bold;
@@ -109,7 +110,6 @@
 
     .main-background {
         flex: 1;
-        background-image: url('');
         background-size: cover;
         background-position: center;
         position: relative;
