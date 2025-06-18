@@ -63,17 +63,17 @@ const Header = () => {
                                 <input 
                                     type="text" 
                                     placeholder="이름" 
-                                    className="signin_input"
+                                    className="signup_input"
                                 />
                                 <input 
                                     type="email" 
                                     placeholder="아이디/이메일" 
-                                    className="signin_input"
+                                    className="signup_input"
                                 />
                                 <input 
                                     type="password" 
                                     placeholder="비밀번호" 
-                                    className="signin_input"
+                                    className="signup_input"
                                 />
                                 <button className="signup_btn">회원가입 완료</button>
                             </motion.div>
