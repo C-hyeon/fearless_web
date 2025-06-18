@@ -74,10 +74,17 @@
 
     width: 70%;
     padding: 0.9rem;
-    border: none;
+    border: solid Nesting.$white;
     border-radius: 30px;
     margin: 0.5rem 0 0.3rem;
     cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+
+    &:hover {
+        color: Nesting.$black;
+        background-color: Nesting.$white;
+        border: solid Nesting.$black;
+    }
 }
 
 .divider {
