@@ -38,3 +38,50 @@
         }
     }
 }
+
+// 회원 로그인 모달창
+.signin_logo {
+    font-family: Nesting.$main_font_Bold;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.signin_title {
+    margin-bottom: 1.2rem;
+}
+
+.signin_input {
+    width: 90%;
+    padding: 1rem;
+    background: rgb(230, 230, 230);
+    border: none;
+    border-radius: 30px;
+    margin-bottom: 0.8rem;
+    cursor: pointer;
+
+    color: Nesting.$black;
+    font-size: 0.95rem;
+    font-family: Nesting.$main_font_Light;
+
+    &::placeholder {color: #8b8080;}
+}
+
+.signin_btn, 
+.signup_btn, 
+.google_btn {
+    background: Nesting.$black;
+    color: Nesting.$white;
+
+    width: 70%;
+    padding: 0.9rem;
+    border: none;
+    border-radius: 30px;
+    margin: 0.5rem 0 0.3rem;
+    cursor: pointer;
+}
+
+.divider {
+    margin: 1rem 0;
+    border: none;
+    border-top: 1px solid Nesting.$black;
+}
