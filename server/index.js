@@ -18,7 +18,7 @@ if (!fs.existsSync(USERS_FILE)) {
 }
 
 // 회원가입
-app.post("/register", (req, res) => {
+app.post("/signup", (req, res) => {
     const { name, email, password } = req.body;
 
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
@@ -35,7 +35,7 @@ app.post("/register", (req, res) => {
 });
 
 // 로그인
-app.post("/login", (req, res) => {
+app.post("/signin", (req, res) => {
     const { email, password } = req.body;
 
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
@@ -52,7 +52,7 @@ app.post("/login", (req, res) => {
 });
 
 // 로그아웃
-app.post("/logout", (req, res) => {
+app.post("/signout", (req, res) => {
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
     data.loggedInUser = null;
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
