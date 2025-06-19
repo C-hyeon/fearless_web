@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { FaUserCircle } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
@@ -14,6 +14,7 @@ const Header = () => {
     const [signupForm, setSignupForm] = useState({name: "", email: "", password: ""});
     const [signinForm, setSigninForm] = useState({email: "", password: ""});
     const [users, setUsers] = useState(null);
+    const navigate = useNavigate();
 
     const handleOpen = () => setIsModalOpen(true);
     const handleClose = () => {
@@ -45,6 +46,8 @@ const Header = () => {
             const res = await axios.post("http://localhost:5000/signin", signinForm);
             alert(res.data.message);
             setUsers(res.data.user);
+            setIsModalOpen(false);
+            navigate("/");
         } catch(err){
             alert(err.response.data.message);
         }
