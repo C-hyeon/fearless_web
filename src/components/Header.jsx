@@ -31,6 +31,7 @@ const Header = () => {
         try{
             const res = await axios.post("http://localhost:5000/signup", signupForm);
             alert(res.data.message);
+            setShowSignup(false);
         } catch(err){
             alert(err.response.data.message);
         }
