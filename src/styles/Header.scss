@@ -58,7 +58,7 @@
     background: rgb(230, 230, 230);
     border: none;
     border-radius: 30px;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
     cursor: pointer;
 
     color: Nesting.$black;
@@ -78,10 +78,25 @@
     padding: 0.9rem;
     border: solid Nesting.$white;
     border-radius: 30px;
-    margin: 0.5rem 0 0.3rem;
+    margin: 0.4rem 0 0.1rem;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
 
+    &:hover {
+        color: Nesting.$black;
+        background-color: Nesting.$white;
+        border: solid Nesting.$black;
+    }
+}
+
+.verify_btn {
+    background: Nesting.$black;
+    color: Nesting.$white;
+    border: solid Nesting.$white;
+    border-radius: 30px;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    
     &:hover {
         color: Nesting.$black;
         background-color: Nesting.$white;
