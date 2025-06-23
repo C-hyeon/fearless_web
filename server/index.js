@@ -7,10 +7,12 @@ const fs = require("fs");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+const nodemailer = require("nodemailer");
 
 const app = express();
 const PORT = 5000;
 const SECRET_KEY = process.env.SECRET_KEY;  // 환경변수 설정
+let verificationCodes = {};                 // 메모리 저장
 
 app.use(cors({
     origin: "http://localhost:5173",    // 클라이언트 주소
@@ -94,6 +96,49 @@ app.get("/status", authenticateToken, (req, res) => {
     const user = data.users.find((u) => u.email === req.user.email);
     if(!user) return res.status(404).json({ loggedIn: false });
     res.json({ loggedIn: true, user });
+});
+
+
+// 이메일 인증 코드 요청
+app.post("/request-verification", async(req, res)=>{
+    const { email } = req.body;
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6자리 코드
+    
+    // 이메일 발송 설정
+    const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "FearLess 인증코드",
+        text: `인증코드는 ${code} 입니다.`
+    };
+
+    try{
+        await transporter.sendMail(mailOptions);
+        verificationCodes[email] = code;
+        setTimeout(() => delete verificationCodes[email], 5*60*1000); // 5분후 만료
+        res.json({ message: "인증코드 전송됨..." });
+    } catch(err) {
+        res.status(500).json({ message: "이메일 전송 실패!" });
+    }
+});
+
+
+// 이메일 인증 코드 확인
+app.post("/verify-code", (req, res)=>{
+    const { email, code } = req.body;
+    if(verificationCodes[email] === code) {
+        return res.json({ success: true });
+    } else {
+        return res.status(400).json({ success: false, message: "인증 코드가 틀렸습니다!" });
+    }
 });
 
 
