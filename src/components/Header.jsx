@@ -57,12 +57,13 @@ const Header = () => {
     // 계정 로그인 상태 확인 - 서버
     const checkSigninStatus = async () => {
         const res = await axios.get("http://localhost:5000/status");
-        if(res.data.loggedIn) setUsers(res.data.users);
+        if(res.data.loggedIn) setUsers(res.data.user);
     };
 
     // 계정 로그아웃 - 서버
     const handleSignout = async () => {
-        await axios.post("http://localhost:5000/signout");
+        const res = await axios.post("http://localhost:5000/signout");
+        alert(res.data.message);
         setUsers(null);
     };
 
