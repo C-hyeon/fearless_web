@@ -29,11 +29,13 @@ const Header = () => {
 
     const handleSignupSubmit = async () => {
         try{
-            const res = await axios.post("http://localhost:5000/signup", signupForm);
+            const res = await axios.post("http://localhost:5000/signup", signupForm, {
+                withCredentials: true,
+            });
             alert(res.data.message);
             setShowSignup(false);
         } catch(err){
-            alert(err.response.data.message);
+            alert(err.response?.data?.message || "회원가입 실패");
         }
     };
 
@@ -44,27 +46,41 @@ const Header = () => {
 
     const handleSigninSubmit = async () => {
         try{
-            const res = await axios.post("http://localhost:5000/signin", signinForm);
+            const res = await axios.post("http://localhost:5000/signin", signinForm, {
+                withCredentials: true
+            });
             alert(res.data.message);
             setUsers(res.data.user);
             setIsModalOpen(false);
             navigate("/");
         } catch(err){
-            alert(err.response.data.message);
+            alert(err.response?.data?.message || "로그인 실패");
         }
     };
 
     // 계정 로그인 상태 확인 - 서버
     const checkSigninStatus = async () => {
-        const res = await axios.get("http://localhost:5000/status");
-        if(res.data.loggedIn) setUsers(res.data.user);
+        try {
+            const res = await axios.get("http://localhost:5000/status", {
+                withCredentials: true
+            });
+            if(res.data.loggedIn) setUsers(res.data.user);
+        } catch (err){
+            setUsers(null);         // 인증 실패 시 로그아웃 처리
+        }
     };
 
     // 계정 로그아웃 - 서버
     const handleSignout = async () => {
-        const res = await axios.post("http://localhost:5000/signout");
-        alert(res.data.message);
-        setUsers(null);
+        try {
+            const res = await axios.post("http://localhost:5000/signout", {}, {
+                withCredentials: true
+            });
+            alert(res.data.message);
+            setUsers(null);
+        } catch (err){
+            alert("로그아웃 실패!");
+        }
     };
 
     useEffect(()=>{checkSigninStatus();}, []);

@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# User management
+# Server management
 server/users.json
+server/.env
