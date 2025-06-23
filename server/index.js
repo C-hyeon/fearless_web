@@ -8,11 +8,18 @@ const path = require("path");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const nodemailer = require("nodemailer");
+const session = require("express-session");
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+
 
 const app = express();
 const PORT = 5000;
 const SECRET_KEY = process.env.SECRET_KEY;  // 환경변수 설정
 let verificationCodes = {};                 // 메모리 저장
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
 
 app.use(cors({
     origin: "http://localhost:5173",    // 클라이언트 주소
@@ -20,13 +27,49 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(cookieParser());
+app.use(session({
+    secret: "some_secret", resave: false, saveUninitialized: true
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
 
 const USERS_FILE = path.join(__dirname, "users.json");
+
+// 직렬화 / 역직렬화
+passport.serializeUser((user, done)=>done(null, user));
+passport.deserializeUser((obj, done)=>done(null, obj));
+
+// 전략 등록
+passport.use(new GoogleStrategy({
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET, 
+    callbackURL: "/google/callback"
+}, (accessToken, refreshToken, profile, done) => {
+    // 사용자 확인 및 저장
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    let user = data.users.find((u) => u.googleId === profile.id);
+
+    if(!user) {
+        user = {
+            name: profile.displayName,
+            email: profile.emails[0].value,
+            googleId: profile.id,
+            provider: "google"
+        };
+        data.users.push(user);
+        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+    }
+
+    return done(null, user);
+}));
+
 
 // JSON 파일 초기화
 if (!fs.existsSync(USERS_FILE)) {
     fs.writeFileSync(USERS_FILE, JSON.stringify({ users: [] }, null, 2));
 }
+
 
 // 토큰 검증 미들웨어
 function authenticateToken(req, res, next) {
@@ -52,7 +95,9 @@ app.post("/signup", (req, res) => {
         return res.status(400).json({ message: "이미 존재하는 이메일입니다." });
     }
 
-    data.users.push({ name, email, password });
+    data.users.push({
+        name, email, password, provider: "local"
+    });
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
     res.json({ message: "회원가입 성공!" });
 });
@@ -139,6 +184,28 @@ app.post("/verify-code", (req, res)=>{
     } else {
         return res.status(400).json({ success: false, message: "인증 코드가 틀렸습니다!" });
     }
+});
+
+
+// Google 로그인 라우트
+app.get("/auth/google", passport.authenticate("google", {
+    scope: ["profile", "email"]
+}));
+
+app.get("/google/callback", passport.authenticate("google", {
+    failureRedirect: "/login"
+}), (req, res) => {
+    // JWT 생성
+    const token = jwt.sign({ email: req.user.email }, SECRET_KEY, { expiresIn: "1h" });
+
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: false, 
+        sameSite: "lax",
+        maxAge: 3600000
+    });
+
+    res.redirect("http://localhost:5173");  // 클라이언트 홈페이지 리디렉션
 });
 
 
