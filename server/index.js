@@ -119,9 +119,9 @@ app.post("/signin", (req, res) => {
     // HTTP-Only 쿠키에 JWT 저장
     res.cookie("token", token, {
         httpOnly: true,
-        secure: false,      // 배포(HTTPS)시 true
-        sameSite: "lax",    // 대부분 ok
-        maxAge: 3600000,    // 3600000 = 1시간
+        secure: false,              // 배포(HTTPS)시 true
+        sameSite: "lax",            // 대부분 ok
+        maxAge: 3600000,            // 3600000 = 1시간
     });
 
     res.json({ message: "로그인 성공!", user });
