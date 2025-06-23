@@ -72,6 +72,9 @@ const Header = () => {
 
     // 계정 로그아웃 - 서버
     const handleSignout = async () => {
+        const confirmSignout = window.confirm("정말 로그아웃 하시겠습니까?");
+        if(!confirmSignout) return;
+
         try {
             const res = await axios.post("http://localhost:5000/signout", {}, {
                 withCredentials: true
