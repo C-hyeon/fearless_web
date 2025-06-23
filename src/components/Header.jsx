@@ -162,7 +162,11 @@ const Header = () => {
                         onChange={handleSigninChange}
                     />
                     <button className="signin_btn" onClick={handleSigninSubmit}>로그인</button>
-                    <button className="google_btn"><FcGoogle size={24}/></button>
+                    <button className="google_btn" onClick={()=>{
+                        window.location.href = "http://localhost:5000/auth/google";
+                    }}>
+                        <FcGoogle size={24}/>
+                    </button>
                     <hr className="divider"/>
 
                     {/* 계정 회원가입 */}
