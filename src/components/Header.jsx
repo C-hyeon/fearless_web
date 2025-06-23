@@ -11,7 +11,13 @@ import "../styles/Header.scss";
 const Header = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showSignup, setShowSignup] = useState(false);
-    const [signupForm, setSignupForm] = useState({name: "", email: "", password: ""});
+    const [signupForm, setSignupForm] = useState({
+        name: "", 
+        email: "", 
+        password: "",
+        code: "",
+        verified: false
+    });
     const [signinForm, setSigninForm] = useState({email: "", password: ""});
     const [users, setUsers] = useState(null);
     const navigate = useNavigate();
@@ -28,6 +34,11 @@ const Header = () => {
     });
 
     const handleSignupSubmit = async () => {
+        if(!signupForm.verified) {
+            alert("이메일 인증을 완료해주세요!");
+            return;
+        }
+
         try{
             const res = await axios.post("http://localhost:5000/signup", signupForm, {
                 withCredentials: true,
@@ -87,6 +98,34 @@ const Header = () => {
     };
 
     useEffect(()=>{checkSigninStatus();}, []);
+
+    // 이메일 인증 요청 - 서버
+    const requestVerification = async () => {
+        try {
+            await axios.post("http://localhost:5000/request-verification", {
+                email: signupForm.email
+            });
+            alert("인증 코드가 이메일로 전송되었습니다...");
+        } catch (err){
+            alert("이메일 전송 실패!");
+        }
+    };
+
+    // 이메일 인증 코드 확인 - 서버
+    const verifyCode = async () => {
+        try {
+            const res = await axios.post("http://localhost:5000/verify-code", {
+                email: signupForm.email,
+                code: signupForm.code
+            });
+            if(res.data.success) {
+                alert("인증 완료!");
+                setSignupForm({...signupForm, verified: true});
+            }
+        } catch (err){
+            alert("인증 실패: 코드가 틀렸습니다!");
+        }
+    };
 
     return (
         <header className="main-header">
@@ -152,6 +191,15 @@ const Header = () => {
                                     className="signup_input"
                                     onChange={handleSignupChange}
                                 />
+                                <input
+                                    name="code"
+                                    type="text"
+                                    placeholder="인증 코드 입력"
+                                    className="signup_input"
+                                    onChange={(e)=>setSignupForm({...signupForm, code: e.target.value})}
+                                />
+                                <button className="verify_btn" onClick={requestVerification}>인증요청</button>
+                                <button className="verify_btn" onClick={verifyCode}>코드확인</button>
                                 <input 
                                     name="password"
                                     type="password" 
