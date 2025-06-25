@@ -3,7 +3,7 @@ import defaultProfile from "../images/User_defaultImg.png";
 import "../styles/Modal.scss";
 import "../styles/Header.scss";
 
-const Profile = ({ user, onSignout, onClose }) => {
+const Profile = ({ user, onSignout, onClose, onDelete }) => {
     if (!user) return null;
 
     return (
@@ -43,7 +43,7 @@ const Profile = ({ user, onSignout, onClose }) => {
 
                     <button className="profileupdate_btn">정보수정</button>
                     <button className="signout_btn" onClick={onSignout}>로그아웃</button>
-                    <button className="userdelete_btn">회원탈퇴</button>
+                    <button className="deleteaccount_btn" onClick={onDelete}>회원탈퇴</button>
                 </motion.div>
             </div>
         </AnimatePresence>

@@ -132,6 +132,24 @@ const Header = () => {
         }
     };
 
+    // 회원탈퇴 - 서버
+    const handleDeleteAccount = async () => {
+        const confirmDelete = window.confirm("정말 회원탈퇴 하시겠습니까? 이전 상태로 되돌릴 수 없습니다!!");
+        if(!confirmDelete) return;
+
+        try {
+            const res = await axios.post("http://localhost:5000/delete-account", {}, {
+                withCredentials: true
+            });
+            alert(res.data.message);
+            setUsers(null);
+            setShowProfile(false);
+            window.location.reload();
+        } catch (err){
+            alert("회원탈퇴에 실패했습니다..");
+        }
+    };
+
     return (
         <header className="main-header">
             <nav className="nav-menu">
@@ -228,6 +246,7 @@ const Header = () => {
                     user={users} 
                     onSignout={handleSignout} 
                     onClose={()=>setShowProfile(false)}
+                    onDelete={handleDeleteAccount}
                 />
             )}
         </header>
