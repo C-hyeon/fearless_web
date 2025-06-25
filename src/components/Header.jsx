@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { FaUserCircle } from "react-icons/fa";
 import { FaRegCircleUser } from "react-icons/fa6";
@@ -22,13 +22,13 @@ const Header = () => {
     });
     const [signinForm, setSigninForm] = useState({email: "", password: ""});
     const [users, setUsers] = useState(null);
-    const navigate = useNavigate();
     const [showProfile, setShowProfile] = useState(false);
 
     const handleOpen = () => setIsModalOpen(true);
     const handleClose = () => {
         setIsModalOpen(false);
         setShowSignup(false);
+        setShowProfile(false);
     };
 
     // 계정 회원가입 - 서버
@@ -241,14 +241,16 @@ const Header = () => {
                 </Modal>
             </nav>
             {/* 사용자 프로필 모달창 */}
-            {showProfile && (
-                <Profile 
-                    user={users} 
-                    onSignout={handleSignout} 
-                    onClose={()=>setShowProfile(false)}
-                    onDelete={handleDeleteAccount}
-                />
-            )}
+            <AnimatePresence>
+                {showProfile && (
+                    <Profile 
+                        user={users} 
+                        onSignout={handleSignout} 
+                        onClose={handleClose}
+                        onDelete={handleDeleteAccount}
+                    />
+                )}
+            </AnimatePresence>
         </header>
     );
 };
