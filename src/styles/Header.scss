@@ -13,7 +13,7 @@
     .nav-menu {
         font-family: Nesting.$main_font_Light;
         display: flex;
-        gap: 5rem;
+        gap: 7rem;
         align-items: center;
 
         .logo {
@@ -40,15 +40,18 @@
     }
 }
 
-// 회원 로그인/회원가입 모달창
-.signin_logo {
+// 회원 로그인/회원가입/프로필 모달창
+.signin_logo,
+.profile_logo {
     font-family: Nesting.$main_font_Bold;
     margin-bottom: 0.5rem;
     letter-spacing: 2px;
 }
 
 .signin_title,
-.signup_title {
+.signup_title,
+.profile_title {
+    font-family: Nesting.$main_font_Light;
     margin-bottom: 1.2rem;
 }
 
@@ -90,7 +93,11 @@
     }
 }
 
-.verify_btn {
+.verify_btn,
+.signout_btn,
+.profileupdate_btn,
+.userdelete_btn {
+    font-family: Nesting.$main_font_Light;
     background: Nesting.$black;
     color: Nesting.$white;
     border: solid Nesting.$white;
@@ -114,4 +121,53 @@
 .signup_form {
     overflow: hidden;
     margin-top: 1rem;
+}
+
+// 프로필 모달창
+.profile_content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+
+    .user_img {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .profile_info {
+        text-align: left;
+
+        .name {
+            font-family: Nesting.$main_font_Bold;
+            font-size: 1.7rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status {
+            width: 180px;
+            padding: 1rem;
+            border-radius: 20px;
+            background-color: Nesting.$black;
+
+            .status_row {
+                color: Nesting.$white;
+                font-family: Nesting.$main_font_Light;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 1rem;
+                margin: 0.4rem 0;
+            }
+
+            .status_divider {
+                margin: 1rem 0;
+                border: none;
+                border-top: 2px solid Nesting.$white;
+            }
+        }
+    }
 }

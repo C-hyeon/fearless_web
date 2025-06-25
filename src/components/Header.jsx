@@ -7,6 +7,7 @@ import { FcGoogle } from "react-icons/fc";
 import { motion, AnimatePresence } from "framer-motion";
 
 import Modal from "./Modal";
+import Profile from "../pages/Profile";
 import "../styles/Header.scss";
 
 const Header = () => {
@@ -22,6 +23,7 @@ const Header = () => {
     const [signinForm, setSigninForm] = useState({email: "", password: ""});
     const [users, setUsers] = useState(null);
     const navigate = useNavigate();
+    const [showProfile, setShowProfile] = useState(false);
 
     const handleOpen = () => setIsModalOpen(true);
     const handleClose = () => {
@@ -64,7 +66,7 @@ const Header = () => {
             alert(res.data.message);
             setUsers(res.data.user);
             setIsModalOpen(false);
-            navigate("/");
+            window.location.reload();
         } catch(err){
             alert(err.response?.data?.message || "로그인 실패");
         }
@@ -93,6 +95,8 @@ const Header = () => {
             });
             alert(res.data.message);
             setUsers(null);
+            setShowProfile(false);
+            window.location.reload();
         } catch (err){
             alert("로그아웃 실패!");
         }
@@ -139,7 +143,7 @@ const Header = () => {
                 <span className="download">바로 다운로드</span>
 
                 {users ? (
-                    <><span className="user-icon" onClick={handleSignout}><FaRegCircleUser/></span></>
+                    <><span className="user-icon" onClick={()=>setShowProfile(true)}><FaRegCircleUser/></span></>
                 ) : (
                     <><span className="user-icon" onClick={handleOpen}><FaUserCircle /></span></>
                 )}
@@ -218,6 +222,14 @@ const Header = () => {
                     </AnimatePresence>
                 </Modal>
             </nav>
+            {/* 사용자 프로필 모달창 */}
+            {showProfile && (
+                <Profile 
+                    user={users} 
+                    onSignout={handleSignout} 
+                    onClose={()=>setShowProfile(false)}
+                />
+            )}
         </header>
     );
 };
