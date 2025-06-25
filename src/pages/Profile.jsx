@@ -18,7 +18,12 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
         const formData = new FormData();
         formData.append("name", updateProfile.name);
         formData.append("password", updateProfile.password);
-        if(updateProfile.profileImage instanceof File) {
+        
+        if(updateProfile.profileImage === null) {
+            // 기본 이미지로 변경 요청
+            formData.append("resetToDefault", "true");
+        } else if(updateProfile.profileImage instanceof File) {
+            // 새 이미지 업로드 요청
             formData.append("profileImage", updateProfile.profileImage);
         }
 
@@ -97,6 +102,13 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                 })}
                                 className="update_input"
                             />
+                            <button className="resetimg_btn" onClick={()=>{
+                                setUpdateProfile({
+                                    ...updateProfile,
+                                    profileImage: null // 기본 이미지 요청
+                                });
+                                alert("기본 이미지로 변경되었습니다!!");
+                            }}>기본이미지 변경</button>
                             <input
                                 name="name"
                                 type="text"
