@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { FaUserCircle } from "react-icons/fa";
+import { FaRegCircleUser } from "react-icons/fa6";
 import { FcGoogle } from "react-icons/fc";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -138,7 +139,7 @@ const Header = () => {
                 <span className="download">바로 다운로드</span>
 
                 {users ? (
-                    <><p onClick={handleSignout}>{users.name}</p></>
+                    <><span className="user-icon" onClick={handleSignout}><FaRegCircleUser/></span></>
                 ) : (
                     <><span className="user-icon" onClick={handleOpen}><FaUserCircle /></span></>
                 )}
