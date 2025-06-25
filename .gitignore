@@ -28,3 +28,4 @@ dist-ssr
 # Server management
 server/users.json
 server/.env
+server/public/images
