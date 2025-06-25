@@ -1,8 +1,36 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import "../styles/Modal.scss";
 import "../styles/Header.scss";
 
 const Profile = ({ user, onSignout, onClose, onDelete }) => {
+    const [showUpdateProfile, setShowUpdateProfile] = useState(false);
+    const [updateProfile, setUpdateProfile] =useState({
+        name: user.name,
+        password: ""
+    });
+
+    const handleChange = (e) => {
+        setUpdateProfile({...updateProfile, [e.target.name]: e.target.value});
+    };
+
+    const handleUpdate = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/update-profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(updateProfile),
+            });
+            const data = await res.json();
+            alert(data.message);
+            setShowUpdateProfile(false);
+            window.location.reload();
+        } catch (err){
+            alert("회원정보 수정을 실패했습니다..");
+        }
+    };
+
     if (!user) return null;
 
     return (
@@ -39,9 +67,51 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                     </div>
                 </div>
 
-                <button className="profileupdate_btn">정보수정</button>
+                <button className="profileupdate_btn" onClick={()=>setShowUpdateProfile(prev => !prev)}>정보수정</button>
                 <button className="signout_btn" onClick={onSignout}>로그아웃</button>
                 <button className="deleteaccount_btn" onClick={onDelete}>회원탈퇴</button>
+                <AnimatePresence>
+                    {showUpdateProfile && (
+                        <motion.div
+                            className="update_form"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.4 }}
+                        >
+                            <h2 className="update_title">회원정보 수정</h2>
+                            <input
+                                name="name"
+                                type="text"
+                                placeholder="이름"
+                                value={updateProfile.name}
+                                onChange={handleChange}
+                                className="update_input"
+                            />
+                            <input
+                                type="email"
+                                value={user.email}
+                                readOnly
+                                className="update_input blurred"
+                            />
+                            <input
+                                type="text"
+                                value={user.provider}
+                                readOnly
+                                className="update_input blurred"
+                            />
+                            <input
+                                name="password"
+                                type="password"
+                                placeholder="새 비밀번호"
+                                value={updateProfile.password}
+                                onChange={handleChange}
+                                className="update_input"
+                            />
+                            <button className="update_btn" onClick={handleUpdate}>수정하기</button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </motion.div>
         </div>
     );

@@ -50,13 +50,15 @@
 
 .signin_title,
 .signup_title,
-.profile_title {
+.profile_title,
+.update_title {
     font-family: Nesting.$main_font_Light;
     margin-bottom: 1.2rem;
 }
 
 .signin_input,
-.signup_input {
+.signup_input,
+.update_input {
     width: 90%;
     padding: 1rem;
     background: rgb(230, 230, 230);
@@ -74,7 +76,9 @@
 
 .signin_btn, 
 .signup_btn, 
-.google_btn {
+.google_btn,
+.update_btn {
+    font-family: Nesting.$main_font_Light;
     background: Nesting.$black;
     color: Nesting.$white;
 
@@ -118,7 +122,8 @@
     border-top: 1px solid Nesting.$black;
 }
 
-.signup_form {
+.signup_form,
+.update_form {
     overflow: hidden;
     margin-top: 1rem;
 }
@@ -170,4 +175,13 @@
             }
         }
     }
+}
+
+// 고정된 항목 블러처리
+.blurred {
+    filter: blur(0.5px);
+    pointer-events: none;
+    user-select: none;
+    background-color: #f5f5f5;
+    color: #666666;
 }
