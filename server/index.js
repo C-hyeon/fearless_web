@@ -11,6 +11,7 @@ const nodemailer = require("nodemailer");
 const session = require("express-session");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const multer = require("multer");
 
 
 const app = express();
@@ -20,19 +21,32 @@ let verificationCodes = {};                 // 메모리 저장
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
+// Storage 설정
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, "public/images"));    // 이미지 저장 경로
+    },
+    filename: (req, file, cb) => {
+        const unique = Date.now() + "-" + file.originalname;
+        cb(null, unique);
+    }
+});
+const upload = multer({ storage });
+
 
 app.use(cors({
     origin: "http://localhost:5173",    // 클라이언트 주소
     credentials: true                   // 쿠키 전송 허용
 }));
-app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(session({
     secret: "some_secret", resave: false, saveUninitialized: true
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
+app.use(bodyParser.json());
 
 const USERS_FILE = path.join(__dirname, "users.json");
 
@@ -215,7 +229,7 @@ app.get("/google/callback", passport.authenticate("google", {
 
 
 // 회원정보 수정
-app.post("/update-profile", authenticateToken, (req, res) => {
+app.post("/update-profile", authenticateToken, upload.single("profileImage"), (req, res) => {
     const { name, password } = req.body;
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
     const user = data.users.find(u=>u.email === req.user.email);
@@ -226,6 +240,9 @@ app.post("/update-profile", authenticateToken, (req, res) => {
 
     if(name) user.name = name;
     if(password) user.password = password;
+    if(req.file) {
+        user.profileImage = "/images/" + req.file.filename;    // 새 이미지 경로 저장
+    }
 
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
     res.json({ message: "회원정보가 성공적으로 수정되었습니다!" });
@@ -235,13 +252,23 @@ app.post("/update-profile", authenticateToken, (req, res) => {
 // 회원탈퇴
 app.post("/delete-account", authenticateToken, (req, res) => {
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const updatedUsers = data.users.filter(u=>u.email !== req.user.email);
+    const user = data.users.find(u => u.email === req.user.email);
 
-    if(updatedUsers.length === data.users.length) {
-        return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    if(!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다!!" });
     }
 
+    // 기본 이미지가 아닌 경우에만 삭제
+    if(user.profileImage && !user.profileImage.includes("User_defaultImg.png")) {
+        const imagePath = path.join(__dirname, "public", user.profileImage);
+        if(fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+        }
+    }
+    
+    const updatedUsers = data.users.filter(u=>u.email !== req.user.email);
     fs.writeFileSync(USERS_FILE, JSON.stringify({ users: updatedUsers }, null, 2));
+
     res.clearCookie("token");
     res.json({ message: "회원탈퇴가 완료되었습니다.." });
 });
