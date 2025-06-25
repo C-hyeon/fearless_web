@@ -213,6 +213,25 @@ app.get("/google/callback", passport.authenticate("google", {
     res.redirect("http://localhost:5173");  // 클라이언트 홈페이지 리디렉션
 });
 
+
+// 회원정보 수정
+app.post("/update-profile", authenticateToken, (req, res) => {
+    const { name, password } = req.body;
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    const user = data.users.find(u=>u.email === req.user.email);
+
+    if(!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다!" });
+    }
+
+    if(name) user.name = name;
+    if(password) user.password = password;
+
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+    res.json({ message: "회원정보가 성공적으로 수정되었습니다!" });
+});
+
+
 // 회원탈퇴
 app.post("/delete-account", authenticateToken, (req, res) => {
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
@@ -225,7 +244,7 @@ app.post("/delete-account", authenticateToken, (req, res) => {
     fs.writeFileSync(USERS_FILE, JSON.stringify({ users: updatedUsers }, null, 2));
     res.clearCookie("token");
     res.json({ message: "회원탈퇴가 완료되었습니다.." });
-})
+});
 
 app.listen(PORT, () => {
     console.log(`서버 실행 중: http://localhost:${PORT}`);
