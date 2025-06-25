@@ -24,7 +24,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 // Storage 설정
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, "public/images"));    // 이미지 저장 경로
+        cb(null, path.join(__dirname, "public", "images"));    // 이미지 저장 경로
     },
     filename: (req, file, cb) => {
         const unique = Date.now() + "-" + file.originalname;
@@ -238,10 +238,30 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), (r
         return res.status(404).json({ message: "사용자를 찾을 수 없습니다!" });
     }
 
+    // 이전 이미지 백업
+    const previousImage = user.profileImage;
+
+    // 업데이트
     if(name) user.name = name;
     if(password) user.password = password;
     if(req.file) {
         user.profileImage = "/images/" + req.file.filename;    // 새 이미지 경로 저장
+
+        // 이전 이미지 삭제 (기본 이미지는 예외처리)
+        if(previousImage && !previousImage.includes("User_defaultImg.png")) {
+            const previousPath = path.join(__dirname, "public", previousImage);
+            if(fs.existsSync(previousPath)) fs.unlinkSync(previousPath);
+        }
+    }
+
+    // 클라이언트에서 기본 이미지로 변경 요청한 경우
+    if(!req.file && req.body.resetToDefault === "true") {
+        // 기존 이미지 삭제(기본 이미지 제외)
+        if(previousImage && !previousImage.includes("User_defaultImg.png")) {
+            const previousPath = path.join(__dirname, "public", previousImage);
+            if(fs.existsSync(previousPath)) fs.unlinkSync(previousPath);
+        }
+        user.profileImage = "/images/User_defaultImg.png";
     }
 
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
