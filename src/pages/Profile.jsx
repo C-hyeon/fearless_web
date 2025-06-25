@@ -129,14 +129,16 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                 readOnly
                                 className="update_input blurred"
                             />
-                            <input
-                                name="password"
-                                type="password"
-                                placeholder="새 비밀번호"
-                                value={updateProfile.password}
-                                onChange={handleChange}
-                                className="update_input"
-                            />
+                            {user.provider === "Local" && (
+                                <input
+                                    name="password"
+                                    type="password"
+                                    placeholder="새 비밀번호"
+                                    value={updateProfile.password}
+                                    onChange={handleChange}
+                                    className="update_input"
+                                />
+                            )}
                             <button className="update_btn" onClick={handleUpdate}>수정하기</button>
                         </motion.div>
                     )}
