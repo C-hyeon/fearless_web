@@ -67,6 +67,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                     </div>
                 </div>
 
+                <button className="gameinformation_btn">게임정보</button>
                 <button className="profileupdate_btn" onClick={()=>setShowUpdateProfile(prev => !prev)}>정보수정</button>
                 <button className="signout_btn" onClick={onSignout}>로그아웃</button>
                 <button className="deleteaccount_btn" onClick={onDelete}>회원탈퇴</button>
