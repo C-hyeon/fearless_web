@@ -15,12 +15,18 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
     };
 
     const handleUpdate = async () => {
+        const formData = new FormData();
+        formData.append("name", updateProfile.name);
+        formData.append("password", updateProfile.password);
+        if(updateProfile.profileImage instanceof File) {
+            formData.append("profileImage", updateProfile.profileImage);
+        }
+
         try {
             const res = await fetch("http://localhost:5000/update-profile", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify(updateProfile),
+                body: formData,
             });
             const data = await res.json();
             alert(data.message);
@@ -50,7 +56,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 <h2 className="profile_title">프로필</h2>
 
                 <div className="profile_content">
-                    <img src={user.profileImage} alt="User Profile" className="user_img" />
+                    <img src={`http://localhost:5000${user.profileImage}`} alt="User Profile" className="user_img" />
                     <div className="profile_info">
                         <h2 className="name">{user.name}</h2>
                         <div className="status">
@@ -81,6 +87,16 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                             transition={{ duration: 0.4 }}
                         >
                             <h2 className="update_title">회원정보 수정</h2>
+                            <input
+                                name="profileImage"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setUpdateProfile({
+                                    ...updateProfile,
+                                    profileImage: e.target.files[0]
+                                })}
+                                className="update_input"
+                            />
                             <input
                                 name="name"
                                 type="text"
