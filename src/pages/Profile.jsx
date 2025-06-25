@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import defaultProfile from "../images/User_defaultImg.png";
 import "../styles/Modal.scss";
 import "../styles/Header.scss";
 
@@ -23,7 +22,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 <h2 className="profile_title">프로필</h2>
 
                 <div className="profile_content">
-                    <img src={defaultProfile} alt="User Profile" className="user_img" />
+                    <img src={user.profileImage} alt="User Profile" className="user_img" />
                     <div className="profile_info">
                         <h2 className="name">{user.name}</h2>
                         <div className="status">
