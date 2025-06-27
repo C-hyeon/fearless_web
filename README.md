@@ -13,52 +13,79 @@
 >>> 3) 구매한 무기 및 아이템은 Unity 게임 내 사용 가능
 >> 3. 웹 사이트 상 Unity 게임 다운로드 기능 구현
 >> 4. 기타 기능 추가는 구현 중 설계 예정
+-----
 - **1주차** (5/19 ~ 5/25)
-> - 웹 프론트엔드 기본 와이어프레임 설계
+> - 웹 프론트엔드 기본 **와이어프레임** 설계
+-----
 - **2주차** (5/26 ~ 6/1)
 > - VScode에 깃 & 깃허브 연동 및 첫 커밋
 > - 와이어프레임 기반 웹 사이트 기본 구조 구현(1)
->> 1. Header - Main - Footer 구성
+>> 1. **Header - Main - Footer** 구성
 >> 2. Main 페이지 스타일 및 컴포넌트 구성
->> 3. Header 컴포넌트에 Link 라우터로 페이지 라우팅 구현
+>> 3. Header 컴포넌트에 **Link** 라우터로 페이지 라우팅 구현
 > - 웹 스타일 언어 SCSS 공부
+-----
 - **3주차** (6/2 ~ 6/8)
 > - 와이어프레임 기반 웹 사이트 기본 구조 구현(2)
 >> 1. Header 및 Footer 스타일 구성
 >> 2. 사용자 회원가입 및 로그인 Modal 창 기본 스타일 구현
+-----
 - **4주차** (6/9 ~ 6/15)
 > - 1 ~ 3주차 오류 수정 및 보완점 논의
 > - 3학년 1학기 기말고사 준비...
+-----
 - **5주차** (6/16 ~ 6/22)
 > - 사용자 인증 시스템 구현
->> 1. Client 쪽 사용자 회원가입 및 로그인 Modal 창 마무리 구현
+>> 1. 클라이언트 쪽 사용자 회원가입 및 로그인 Modal 창 마무리 구현
 >> 2. *npm install express cors body-parser*
->> 3. Server 폴더 설정 및 index.js + users.json 파일 기본 설정
+>> 3. 서버 폴더 설정 및 index.js + users.json 파일 기본 설정
 >> 4. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 설정 및 Client와 연동
-> - 프론트엔드(React) Framer-Motion 활용 웹 애니메이션 구현
+> - 프론트엔드(React) **Framer-Motion** 활용 웹 애니메이션 구현
 >> 1. *npm install framer-motion*
->> 2. Modal 창 + 각 페이지 라우팅 애니메이션 연동 및 구현
+>> 2. Modal 창(로그인과 회원가입 하나의 Modal 창으로 통합) + 각 페이지 라우팅 애니메이션 연동 및 구현
+-----
 - **6주차** (6/23 ~ 6/29)
-> - JWT + Cookie 활용 사용자 인증 시스템 전환 구현
+> - **JWT + Cookie** 활용 사용자 인증 시스템 전환 구현
 >> 1. *npm install jsonwebtoken cookie-parser dotenv*
 >> 2. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 JWT와 Cookie로 변경
 >> 3. .env 파일 설정
 >>> 1) JWT 쪽 **SECRET_KEY** 설정
 >>> 2) *node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"*
 >> 4. NodeMailer 활용 이메일 인증코드 발송 시스템 구현
->>> ① *npm install nodemailer*
+>>> 1) *npm install nodemailer*
 >>> 2) 새 구글 이메일 생성 및 2차 인증 / 앱 비밀번호 설정
 >>> 3) .env 파일에 **EMAIL_USER** / **EMAIL_PASS** 설정
 >>> 4) 서버 index.js 라우팅 추가 및 수정
 >>> 5) 클라이언트 회원가입 Modal 창 수정 및 서버 연동
-> - Google OAuth 2.0 활용 구글 인증 시스템 추가 구현
-
-
-
-
-
-
-
+> - **Google OAuth 2.0** 활용 구글 인증 시스템 추가 구현
+>> 1. Google Cloud 인증 플랫폼 - 클라이언트 생성 및 ID + Password 설정
+>> 2. .env 파일에 **GOOGLE_CLIENT_ID** / **GOOGLE_CLIENT_SECRET** 설정
+>> 3. *npm install passport passport-google-oauth20 express-session*
+>> 4. 서버 index.js 라우팅 추가 및 JWT + Cookie 적용
+> - 사용자 프로필 Modal 창 구현
+>> 1. 프로필 쪽 와이어프레임 추가 설계
+>> 2. 클라이언트 Header 쪽 프로필 Modal 창 스타일 구현
+>> 3. 서버 index.js 회원정보수정 + 회원탈퇴 라우터 설정 및 구현
+>> 4. Modal(프로필과 회원정보수정 하나의 Modal 창으로 통합) 창 애니메이션 연동 및 구현
+>> 5. *npm install multer*
+>> 6. 사용자 관련 로직(회원가입, 로그인, 프로필 등..)에 이미지 항목 추가
+>> 7. 서버 public\images 폴더 생성 및 상시 라우팅 설정
+>>> 1) *app.use("/images", express.static(path.join(__dirname, "public/images")));*
+>> 8. 서버 쪽 회원정보수정 이미지 라우팅 설정
+>>> 1) 클라이언트에서 신규 이미지 변경 요청 → 기본 이미지 제외 수정전 이미지는 폴더에서 삭제 및 새 이미지 추가
+>>> 2) 클라이언트에서 기본 이미지 변경 요청 → 기본 이미지 제외 수정전 이미지는 폴더에서 삭제
+-----
+- **7주차** (6/30 ~ 7/6)
+> - Unity 게임 **플레이타임**에 따른 차등 보상 기능 및 보상에 따른 상점 페이지 구현
+-----
+- **8주차** (7/7 ~ 7/13)
+> - **MySQL + Node.js** 백엔드 서버 구축 및 테스트 웹사이트 실행
+-----
+- **9주차** (7/14 ~ 7/20)
+> - 웹사이트 상 Unity 게임 다운로드 기능 구현
+-----
+- **10주차 ~** (7/21 ~ )
+> - 오류 수정 및 추가 기능 개발 설계 및 마무리
 
 ## Unity Game
 ### DataBase
