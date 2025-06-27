@@ -1,17 +1,31 @@
 # FearLess [전공연구소모임 & 외부학술대회 연계]
 
-## Design
-- ‘Zenless Zone Zero’ 공식 홈페이지 벤치마킹 예정(와이어프레임 포함)
-- Header / Main / Footer 구조로 구현
-- 페이지 디자인의 경우 CSS 확장판인 SCSS 활용
+## Planning
+- **0주차** ( ~ 5/18)
+> 주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
+> [Zenless Zone Zero](https://zenless.hoyoverse.com/ko-kr/main) 공식 홈페이지 및 게임 스타일 벤치마킹
+> React + Node.js + MySQL / JWT + Cookie + OAuth2.0
+> 웹사이트 기능 구현 예정
+>> JWT + Cookie + OAuth2.0 활용 로컬 사용자 및 구글 인증 시스템 구현
+>> Unity 게임 **플레이타임**에 따른 차등 보상 시스템 구현
+>> 웹 사이트 상 Unity 게임 다운로드 기능 구현
+- **1주차** (5/19 ~ 5/25)
+> 웹 프론트엔드 기본 와이어프레임 설계
+- **2주차** (5/26 ~ 6/1)
+> VScode에 깃 & 깃허브 연동 및 첫 커밋
+> 와이어프레임 기반 웹 사이트 기본 구조 구현
+> 웹 스타일 언어 SCSS 공부
+- **3주차** 
 
-## Function
-- JWT 기반 사용자 인증 시스템 구현
-- OAuth 활용 구글 인증 시스템 기능 추가 구현
-- 게임 플레이타임에 따른 차등 보상 기능 구현
-- 차등 보상 지급 상점 페이지 구현 / 일반 상점 페이지 구현
-- Node.js / Express.js 백엔드 서버 구축 및 테스트 웹 사이트 구현
-- 웹 사이트 상 Unity 게임 실횅 기능 구현
+
+
+
+
+
+
+
+
+
 
 ## Unity Game
 ### DataBase
