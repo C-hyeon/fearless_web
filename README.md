@@ -2,20 +2,19 @@
 
 ## Planning
 - **0주차** ( ~ 5/18)
-> 
-주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
-> [Zenless Zone Zero](https://zenless.hoyoverse.com/ko-kr/main) 공식 홈페이지 및 게임 스타일 벤치마킹
-> React + Node.js + MySQL / JWT + Cookie + OAuth2.0
-> 웹사이트 기능 구현 예정
->> JWT + Cookie + OAuth2.0 활용 로컬 사용자 및 구글 인증 시스템 구현
->> Unity 게임 **플레이타임**에 따른 차등 보상 시스템 구현
->> 웹 사이트 상 Unity 게임 다운로드 기능 구현
+> - 주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
+> - [Zenless Zone Zero](https://zenless.hoyoverse.com/ko-kr/main) 공식 홈페이지 및 게임 스타일 벤치마킹
+> - React + Node.js + MySQL / JWT + Cookie + OAuth2.0
+> - 웹사이트 기능 구현 예정
+>> 1. JWT + Cookie + OAuth2.0 활용 로컬 사용자 및 구글 인증 시스템 구현
+>> 2. Unity 게임 **플레이타임**에 따른 차등 보상 시스템 구현
+>> 3. 웹 사이트 상 Unity 게임 다운로드 기능 구현
 - **1주차** (5/19 ~ 5/25)
-> 웹 프론트엔드 기본 와이어프레임 설계
+> - 웹 프론트엔드 기본 와이어프레임 설계
 - **2주차** (5/26 ~ 6/1)
-> VScode에 깃 & 깃허브 연동 및 첫 커밋
-> 와이어프레임 기반 웹 사이트 기본 구조 구현
-> 웹 스타일 언어 SCSS 공부
+> - VScode에 깃 & 깃허브 연동 및 첫 커밋
+> - 와이어프레임 기반 웹 사이트 기본 구조 구현
+> - 웹 스타일 언어 SCSS 공부
 - **3주차** 
 
 
