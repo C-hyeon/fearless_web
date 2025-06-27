@@ -46,7 +46,7 @@
 >>> 1) JWT 쪽 **SECRET_KEY** 설정
 >>> 2) *node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"*
 >> 4. NodeMailer 활용 이메일 인증코드 발송 시스템 구현
->>> 1) *npm install nodemailer*
+>>> ① *npm install nodemailer*
 >>> 2) 새 구글 이메일 생성 및 2차 인증 / 앱 비밀번호 설정
 >>> 3) .env 파일에 **EMAIL_USER** / **EMAIL_PASS** 설정
 >>> 4) 서버 index.js 라우팅 추가 및 수정
