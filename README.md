@@ -2,7 +2,8 @@
 
 ## Planning
 - **0주차** ( ~ 5/18)
-> 주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
+> 
+주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
 > [Zenless Zone Zero](https://zenless.hoyoverse.com/ko-kr/main) 공식 홈페이지 및 게임 스타일 벤치마킹
 > React + Node.js + MySQL / JWT + Cookie + OAuth2.0
 > 웹사이트 기능 구현 예정
