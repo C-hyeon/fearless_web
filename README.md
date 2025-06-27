@@ -4,8 +4,8 @@
 - **0주차** ( ~ 5/18)
 > - 주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
 > - [Zenless Zone Zero](https://zenless.hoyoverse.com/ko-kr/main) 공식 홈페이지 및 게임 스타일 벤치마킹
-> - React + Node.js(Express) + MySQL / JWT + Cookie + OAuth2.0
-> - **웹사이트 기능**
+> - React + SCSS + Node.js(Express) + MySQL / JWT + Cookie + OAuth2.0
+> - **웹사이트 기능 설계**
 >> 1. JWT + Cookie + OAuth2.0 활용 로컬 사용자 및 구글 인증 시스템 구현
 >> 2. Unity **게임 플레이타임**에 따른 차등 보상 시스템 구현
 >>> 1) 게임 플레이타임에 따른 웹 사이트 **'전용재화'** 획득
@@ -27,19 +27,31 @@
 >> 1. Header 및 Footer 스타일 구성
 >> 2. 사용자 회원가입 및 로그인 Modal 창 기본 스타일 구현
 - **4주차** (6/9 ~ 6/15)
-> - 1 ~ 3주차 오류 수정 및 보안점 논의
+> - 1 ~ 3주차 오류 수정 및 보완점 논의
 > - 3학년 1학기 기말고사 준비...
 - **5주차** (6/16 ~ 6/22)
-> - JWT 기반 사용자 인증 시스템 구현
+> - 사용자 인증 시스템 구현
 >> 1. Client 쪽 사용자 회원가입 및 로그인 Modal 창 마무리 구현
->> 2. Server 쪽 Express / CORS / Body-Parser 라이브러리 설치
+>> 2. *npm install express cors body-parser*
 >> 3. Server 폴더 설정 및 index.js + users.json 파일 기본 설정
 >> 4. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 설정 및 Client와 연동
 > - 프론트엔드(React) Framer-Motion 활용 웹 애니메이션 구현
->> 1. Client 쪽 Framer-Motion 라이브러리 설치
+>> 1. *npm install framer-motion*
 >> 2. Modal 창 + 각 페이지 라우팅 애니메이션 연동 및 구현
-- **6주차** 
-
+- **6주차** (6/23 ~ 6/29)
+> - JWT + Cookie 활용 사용자 인증 시스템 전환 구현
+>> 1. *npm install jsonwebtoken cookie-parser dotenv*
+>> 2. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 JWT와 Cookie로 변경
+>> 3. .env 파일 설정
+>>> 1) JWT 쪽 **SECRET_KEY** 설정
+>>> 2) *node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"*
+>> 4. NodeMailer 활용 이메일 인증코드 발송 시스템 구현
+>>> 1) *npm install nodemailer*
+>>> 2) 새 구글 이메일 생성 및 2차 인증 / 앱 비밀번호 설정
+>>> 3) .env 파일에 **EMAIL_USER** / **EMAIL_PASS** 설정
+>>> 4) 서버 index.js 라우팅 추가 및 수정
+>>> 5) 클라이언트 회원가입 Modal 창 수정 및 서버 연동
+> - Google OAuth 2.0 활용 구글 인증 시스템 추가 구현
 
 
 
