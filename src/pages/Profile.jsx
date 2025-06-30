@@ -61,7 +61,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 <h2 className="profile_title">프로필</h2>
 
                 <div className="profile_content">
-                    <img src={`http://localhost:5000${user.profileImage}`} alt="User Profile" className="user_img" />
+                    <div className="user_img" style={{backgroundImage: `url(http://localhost:5000${user.profileImage})`}} />
                     <div className="profile_info">
                         <h2 className="name">{user.name}</h2>
                         <div className="status">
@@ -78,7 +78,6 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                     </div>
                 </div>
 
-                <button className="gameinformation_btn">게임정보</button>
                 <button className="profileupdate_btn" onClick={()=>setShowUpdateProfile(prev => !prev)}>정보수정</button>
                 <button className="signout_btn" onClick={onSignout}>로그아웃</button>
                 <button className="deleteaccount_btn" onClick={onDelete}>회원탈퇴</button>

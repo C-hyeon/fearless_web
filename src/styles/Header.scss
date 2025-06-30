@@ -99,7 +99,6 @@
 
 .verify_btn,
 .signout_btn,
-.gameinformation_btn,
 .profileupdate_btn,
 .deleteaccount_btn,
 .resetimg_btn {
@@ -135,14 +134,18 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
     margin-bottom: 1.5rem;
 
     .user_img {
         width: 200px;
         height: 200px;
         border-radius: 50%;
-        object-fit: cover;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-color: Nesting.$black;
+        flex-shrink: 0;
     }
 
     .profile_info {
