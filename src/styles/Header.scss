@@ -16,6 +16,19 @@
         gap: 7rem;
         align-items: center;
 
+        a {
+            color: Nesting.$white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            transition: all 0.5s ease;
+
+            &:hover {
+                color: Nesting.$black;
+                background-color: Nesting.$white;
+            }
+        }
+
         .logo {
             font-family: Nesting.$main_font_Bold;
             font-size: 1.5rem;
