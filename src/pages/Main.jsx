@@ -88,7 +88,7 @@ const Main = () => {
                 initial={{ x: 100 * direction, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: -100 * direction, opacity: 0 }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.3 }}
             >
                 {Component}
             </motion.div>
@@ -121,7 +121,9 @@ const Main = () => {
                     <button className="more-button" onClick={()=>handleClick('store')}>상점</button>
                 </div>
                 <br/>
-                <>{renderMenu()}</>
+                <AnimatePresence mode="wait">
+                    {renderMenu()}
+                </AnimatePresence>
                 <br/><br/><br/>
             </div>
         </Wrapper>
