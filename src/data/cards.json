@@ -1,0 +1,56 @@
+{
+    "stages": [
+        {
+            "title": "스테이지 1",
+            "description": "스테이지 1에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "스테이지 2",
+            "description": "스테이지 2에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "스테이지 3",
+            "description": "스테이지 3에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "스테이지 4",
+            "description": "스테이지 4에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "스테이지 5",
+            "description": "스테이지 5에 대한 설명입니다.",
+            "image": ""
+        }
+    ],
+    "weapons": [
+        {
+            "title": "로켓런처",
+            "description": "로켓런처에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "화염방사기",
+            "description": "화염방사기에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "레이저빔",
+            "description": "레이저빔에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "얼음분사기",
+            "description": "얼음분사기에 대한 설명입니다.",
+            "image": ""
+        },
+        {
+            "title": "스턴건",
+            "description": "스턴건에 대한 설명입니다.",
+            "image": ""
+        }
+    ]
+}
