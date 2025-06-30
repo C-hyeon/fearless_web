@@ -9,6 +9,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
         name: user.name,
         password: ""
     });
+    const [previewImage, setPreviewImage] = useState(user.profileImage);
 
     const handleChange = (e) => {
         setUpdateProfile({...updateProfile, [e.target.name]: e.target.value});
@@ -61,7 +62,14 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 <h2 className="profile_title">프로필</h2>
 
                 <div className="profile_content">
-                    <div className="user_img" style={{backgroundImage: `url(http://localhost:5000${user.profileImage})`}} />
+                    <div 
+                        className="user_img" 
+                        style={{
+                            backgroundImage: previewImage.startsWith("blob:")
+                            ? `url(${previewImage})`
+                            : `url(http://localhost:5000${previewImage})`
+                        }} 
+                    />
                     <div className="profile_info">
                         <h2 className="name">{user.name}</h2>
                         <div className="status">
@@ -95,10 +103,13 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                 name="profileImage"
                                 type="file"
                                 accept="image/*"
-                                onChange={(e) => setUpdateProfile({
-                                    ...updateProfile,
-                                    profileImage: e.target.files[0]
-                                })}
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if(file) {
+                                        setUpdateProfile({ ...updateProfile, profileImage: file });
+                                        setPreviewImage(URL.createObjectURL(file));
+                                    }
+                                }}
                                 className="update_input"
                             />
                             <button className="resetimg_btn" onClick={()=>{
@@ -106,6 +117,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                     ...updateProfile,
                                     profileImage: null // 기본 이미지 요청
                                 });
+                                setPreviewImage("/images/User_defaultImg.png");
                                 alert("기본 이미지로 변경되었습니다!!");
                             }}>기본이미지 변경</button>
                             <input
