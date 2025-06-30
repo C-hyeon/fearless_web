@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaChevronRight } from 'react-icons/fa';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import Wrapper from '../components/Wrapper';
 import "../styles/Main.scss";
@@ -70,11 +71,35 @@ const Store_Menu = () => {
 
 const Main = () => {
     const [menu, setMenu] = useState('play');
+    const [prevMenu, setPrevMenu] = useState('play');
+
+    const menuOrder = ['play', 'event', 'store'];
+    const direction = menuOrder.indexOf(menu) > menuOrder.indexOf(prevMenu) ? 1 : -1;
 
     const renderMenu = () => {
-        if (menu === 'play') return <Play_Menu/>;
-        if (menu === 'event') return <Event_Menu/>;
-        if (menu === 'store') return <Store_Menu/>;
+        let Component = null;
+        if (menu === 'play') Component = <Play_Menu/>;
+        if (menu === 'event') Component = <Event_Menu/>;
+        if (menu === 'store') Component = <Store_Menu/>;
+
+        return (
+            <motion.div
+                key={menu}
+                initial={{ x: 100 * direction, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -100 * direction, opacity: 0 }}
+                transition={{ duration: 0.6 }}
+            >
+                {Component}
+            </motion.div>
+        );
+    };
+
+    const handleClick = (newMenu) => {
+        if(newMenu !== menu) {
+            setPrevMenu(menu);
+            setMenu(newMenu);
+        }
     };
 
     return (
@@ -91,10 +116,11 @@ const Main = () => {
                 </div>
                 <br/><br/><br/>
                 <div className="main-menuBox">
-                    <button className="more-button" onClick={()=>setMenu('play')}>게임소개</button>
-                    <button className="more-button" onClick={()=>setMenu('event')}>이벤트</button>
-                    <button className="more-button" onClick={()=>setMenu('store')}>상점</button>
+                    <button className="more-button" onClick={()=>handleClick('play')}>게임소개</button>
+                    <button className="more-button" onClick={()=>handleClick('event')}>이벤트</button>
+                    <button className="more-button" onClick={()=>handleClick('store')}>상점</button>
                 </div>
+                <br/>
                 <>{renderMenu()}</>
                 <br/><br/><br/>
             </div>

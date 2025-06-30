@@ -6,6 +6,9 @@
     height: auto;
     background: linear-gradient(-135deg, #f7f7f7 25%, #eeeeee 25%, #eeeeee 50%, #f7f7f7 50%, #f7f7f7 75%, #eeeeee 75%);
     background-size: 320px 320px;
+
+    overflow: hidden;
+    position: relative;
 }
 
 .main-content {
