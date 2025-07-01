@@ -70,7 +70,8 @@ passport.use(new GoogleStrategy({
             email: profile.emails[0].value,
             googleId: profile.id,
             profileImage: "/images/User_defaultImg.png",
-            provider: "Google"
+            provider: "Google",
+            mailbox: JSON.stringify([])
         };
         data.users.push(user);
         fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
@@ -115,7 +116,8 @@ app.post("/signup", (req, res) => {
         email, 
         password, 
         profileImage: "/images/User_defaultImg.png",
-        provider: "Local"
+        provider: "Local",
+        mailbox: JSON.stringify([])
     });
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
     res.json({ message: "회원가입 성공!" });
