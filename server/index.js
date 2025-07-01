@@ -295,6 +295,40 @@ app.post("/delete-account", authenticateToken, (req, res) => {
     res.json({ message: "회원탈퇴가 완료되었습니다.." });
 });
 
+
+// 사용자 우편함 불러오기
+app.get("/mailbox", authenticateToken, (req, res) => {
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    const user = data.users.find(u => u.email === req.user.email);
+
+    if(!user) return res.status(404).json({message: "사용자 없음"});
+
+    const mailbox = JSON.parse(user.mailbox || "[]");
+    res.json({ mailbox });
+});
+
+
+// 사용자 우편 추가
+app.post("/mailbox", authenticateToken, (req, res) => {
+    const {title, content} = req.body;
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    const user = data.users.find(u => u.email === req.user.email);
+
+    if(!user) return res.status(404).json({message: "사용자 없음"});
+
+    const mailbox = JSON.parse(user.mailbox || "[]");
+    mailbox.push({
+        title,
+        content,
+        date: new Date().toISOString()
+    });
+
+    user.mailbox = JSON.stringify(mailbox);
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+    res.json({message: "우편 추가됨"});
+});
+
+
 app.listen(PORT, () => {
     console.log(`서버 실행 중: http://localhost:${PORT}`);
 });
