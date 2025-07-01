@@ -25,16 +25,13 @@ const Header = () => {
     const [users, setUsers] = useState(null);
     const [showProfile, setShowProfile] = useState(false);
     const [showMailbox, setShowMailbox] = useState(false);
+    const [mailbox, setMailbox] = useState([]);
 
     const handleOpen = () => setIsModalOpen(true);
     const handleClose = () => {
         setIsModalOpen(false);
         setShowSignup(false);
         setShowProfile(false);
-    };
-    const handleOpenMailbox = () => {
-        setShowMailbox(true);
-        setIsModalOpen(true);
     };
 
     // 계정 회원가입 - 서버
@@ -156,6 +153,21 @@ const Header = () => {
         }
     };
 
+    
+    // 사용자 우편함 열기 - 서버
+    const handleOpenMailbox = async () => {
+        try {
+            const res = await axios.get("http://localhost:5000/mailbox", {
+                withCredentials: true
+            });
+            setMailbox(res.data.mailbox);
+            setShowMailbox(true);
+            setIsModalOpen(true);
+        } catch (err) {
+            alert("우편함을 불러오는데 실패하였습니다...");
+        }
+    };
+
     return (
         <header className="main-header">
             <nav className="nav-menu">
@@ -179,8 +191,20 @@ const Header = () => {
                     {showMailbox ? (
                         <>
                             <h1 className="master_logo">FearLess</h1>
-                            <h2 className="mail_title">우편함</h2>
-                            <p>아직 수신된 우편이 없습니다.</p>
+                            <h2 className="mail_title">내 우편함</h2>
+                            {mailbox.length === 0 ? (
+                                <p>수신된 우편이 없습니다.</p>
+                            ) : (
+                                <ul>
+                                    {mailbox.map((mail, idx) => (
+                                        <li key={idx}>
+                                            <strong>{mail.title}</strong><br/>
+                                            <span>{mail.content}</span><br/>
+                                            <small>{new Date(mail.date).toLocaleString()}</small>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </>
                     ) : (
                         <>
