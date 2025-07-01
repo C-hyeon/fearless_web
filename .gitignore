@@ -25,7 +25,9 @@ dist-ssr
 *.sw?
 
 
-# Server management
+# Client / Server management
+/public/
+/src/data/
 server/users.json
 server/.env
 server/public/images
