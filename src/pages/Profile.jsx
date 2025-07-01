@@ -58,7 +58,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 <button className="closeButton" onClick={onClose}>
                     &times;
                 </button>
-                <h1 className="profile_logo">FearLess</h1>
+                <h1 className="master_logo">FearLess</h1>
                 <h2 className="profile_title">프로필</h2>
 
                 <div className="profile_content">
