@@ -34,7 +34,8 @@
             font-size: 1.5rem;
         }
 
-        .user-icon {
+        .user-icon,
+        .mail-icon {
             display: flex;
             font-size: 2rem;
             cursor: pointer;
@@ -54,8 +55,7 @@
 }
 
 // 회원 로그인/회원가입/프로필 모달창
-.signin_logo,
-.profile_logo {
+.master_logo {
     font-family: Nesting.$main_font_Bold;
     margin-bottom: 0.5rem;
     letter-spacing: 2px;
@@ -64,7 +64,8 @@
 .signin_title,
 .signup_title,
 .profile_title,
-.update_title {
+.update_title,
+.mail_title {
     font-family: Nesting.$main_font_Light;
     margin-bottom: 1.2rem;
 }

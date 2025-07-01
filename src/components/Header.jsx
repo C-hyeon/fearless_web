@@ -4,6 +4,7 @@ import axios from "axios";
 import { FaUserCircle } from "react-icons/fa";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { FcGoogle } from "react-icons/fc";
+import { CiMail } from "react-icons/ci";
 import { motion, AnimatePresence } from "framer-motion";
 
 import Modal from "./Modal";
@@ -23,12 +24,17 @@ const Header = () => {
     const [signinForm, setSigninForm] = useState({email: "", password: ""});
     const [users, setUsers] = useState(null);
     const [showProfile, setShowProfile] = useState(false);
+    const [showMailbox, setShowMailbox] = useState(false);
 
     const handleOpen = () => setIsModalOpen(true);
     const handleClose = () => {
         setIsModalOpen(false);
         setShowSignup(false);
         setShowProfile(false);
+    };
+    const handleOpenMailbox = () => {
+        setShowMailbox(true);
+        setIsModalOpen(true);
     };
 
     // 계정 회원가입 - 서버
@@ -161,83 +167,96 @@ const Header = () => {
                 <span className="download">바로 다운로드</span>
 
                 {users ? (
-                    <><span className="user-icon" onClick={()=>setShowProfile(true)}><FaRegCircleUser/></span></>
+                    <>
+                        <span className="mail-icon" onClick={handleOpenMailbox}><CiMail/></span>
+                        <span className="user-icon" onClick={()=>setShowProfile(true)}><FaRegCircleUser/></span>
+                    </>
                 ) : (
                     <><span className="user-icon" onClick={handleOpen}><FaUserCircle /></span></>
                 )}
                 
                 <Modal isOpen={isModalOpen} onClose={handleClose}>
-                    {/* 계정 로그인 */}
-                    <h1 className="signin_logo">FearLess</h1>
-                    <h2 className="signin_title">계정 로그인</h2>
-                    <input 
-                        name="email"
-                        type="email"
-                        placeholder="아이디/이메일" 
-                        className="signin_input"
-                        onChange={handleSigninChange}
-                    />
-                    <input 
-                        name="password"
-                        type="password" 
-                        placeholder="비밀번호" 
-                        className="signin_input"
-                        onChange={handleSigninChange}
-                    />
-                    <button className="signin_btn" onClick={handleSigninSubmit}>로그인</button>
-                    <button className="google_btn" onClick={()=>{
-                        window.location.href = "http://localhost:5000/auth/google";
-                    }}>
-                        <FcGoogle size={24}/>
-                    </button>
-                    <hr className="divider"/>
+                    {showMailbox ? (
+                        <>
+                            <h1 className="master_logo">FearLess</h1>
+                            <h2 className="mail_title">우편함</h2>
+                            <p>아직 수신된 우편이 없습니다.</p>
+                        </>
+                    ) : (
+                        <>
+                            {/* 계정 로그인 */}
+                            <h1 className="master_logo">FearLess</h1>
+                            <h2 className="signin_title">계정 로그인</h2>
+                            <input 
+                                name="email"
+                                type="email"
+                                placeholder="아이디/이메일" 
+                                className="signin_input"
+                                onChange={handleSigninChange}
+                            />
+                            <input 
+                                name="password"
+                                type="password" 
+                                placeholder="비밀번호" 
+                                className="signin_input"
+                                onChange={handleSigninChange}
+                            />
+                            <button className="signin_btn" onClick={handleSigninSubmit}>로그인</button>
+                            <button className="google_btn" onClick={()=>{
+                                window.location.href = "http://localhost:5000/auth/google";
+                            }}>
+                                <FcGoogle size={24}/>
+                            </button>
+                            <hr className="divider"/>
 
-                    {/* 계정 회원가입 */}
-                    <button className="signup_btn" onClick={()=>setShowSignup(prev => !prev)}>회원가입</button>
-                    <AnimatePresence>
-                        {showSignup && (
-                            <motion.div
-                                className="signup_form"
-                                initial={{opacity: 0, height: 0}}
-                                animate={{opacity: 1, height: "auto"}}
-                                exit={{opacity: 0, height: 0}}
-                                transition={{duration: 0.4}}
-                            >
-                                <h2 className="signup_title">계정 회원가입</h2>
-                                <input 
-                                    name="name"
-                                    type="text"
-                                    placeholder="이름" 
-                                    className="signup_input"
-                                    onChange={handleSignupChange}
-                                />
-                                <input 
-                                    name="email"
-                                    type="email"
-                                    placeholder="아이디/이메일" 
-                                    className="signup_input"
-                                    onChange={handleSignupChange}
-                                />
-                                <input
-                                    name="code"
-                                    type="text"
-                                    placeholder="인증 코드 입력"
-                                    className="signup_input"
-                                    onChange={(e)=>setSignupForm({...signupForm, code: e.target.value})}
-                                />
-                                <button className="verify_btn" onClick={requestVerification}>인증요청</button>
-                                <button className="verify_btn" onClick={verifyCode}>코드확인</button>
-                                <input 
-                                    name="password"
-                                    type="password" 
-                                    placeholder="비밀번호" 
-                                    className="signup_input"
-                                    onChange={handleSignupChange}
-                                />
-                                <button className="signup_btn" onClick={handleSignupSubmit}>회원가입 완료</button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                            {/* 계정 회원가입 */}
+                            <button className="signup_btn" onClick={()=>setShowSignup(prev => !prev)}>회원가입</button>
+                            <AnimatePresence>
+                                {showSignup && (
+                                    <motion.div
+                                        className="signup_form"
+                                        initial={{opacity: 0, height: 0}}
+                                        animate={{opacity: 1, height: "auto"}}
+                                        exit={{opacity: 0, height: 0}}
+                                        transition={{duration: 0.4}}
+                                    >
+                                        <h2 className="signup_title">계정 회원가입</h2>
+                                        <input 
+                                            name="name"
+                                            type="text"
+                                            placeholder="이름" 
+                                            className="signup_input"
+                                            onChange={handleSignupChange}
+                                        />
+                                        <input 
+                                            name="email"
+                                            type="email"
+                                            placeholder="아이디/이메일" 
+                                            className="signup_input"
+                                            onChange={handleSignupChange}
+                                        />
+                                        <input
+                                            name="code"
+                                            type="text"
+                                            placeholder="인증 코드 입력"
+                                            className="signup_input"
+                                            onChange={(e)=>setSignupForm({...signupForm, code: e.target.value})}
+                                        />
+                                        <button className="verify_btn" onClick={requestVerification}>인증요청</button>
+                                        <button className="verify_btn" onClick={verifyCode}>코드확인</button>
+                                        <input 
+                                            name="password"
+                                            type="password" 
+                                            placeholder="비밀번호" 
+                                            className="signup_input"
+                                            onChange={handleSignupChange}
+                                        />
+                                        <button className="signup_btn" onClick={handleSignupSubmit}>회원가입 완료</button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </>
+                    )}
                 </Modal>
             </nav>
             {/* 사용자 프로필 모달창 */}
