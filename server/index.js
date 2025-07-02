@@ -64,6 +64,17 @@ passport.use(new GoogleStrategy({
 }, (accessToken, refreshToken, profile, done) => {
     // 사용자 확인 및 저장
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
+
+    // 삭제된 사용자 이메일 목록이 있는지 확인
+    const deletedUsers = data.deletedUsers || [];
+
+    // 탈퇴한 사용자 목록에서 제거 (재가입 허용)
+    const email = profile.emails[0].value;
+    const deletedIndex = deletedUsers.indexOf(email);
+    if (deletedIndex !== -1) {
+        deletedUsers.splice(deletedIndex, 1);
+    }
+    
     let user = data.users.find((u) => u.googleId === profile.id);
 
     if(!user) {
@@ -73,6 +84,7 @@ passport.use(new GoogleStrategy({
             googleId: profile.id,
             profileImage: "/images/User_defaultImg.png",
             provider: "Google",
+            playtime: "00:00:00",
             mailbox: JSON.stringify([])
         };
         data.users.push(user);
@@ -85,7 +97,7 @@ passport.use(new GoogleStrategy({
 
 // JSON 파일 초기화
 if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify({ users: [] }, null, 2));
+    fs.writeFileSync(USERS_FILE, JSON.stringify({ users: [], deletedUsers: [] }, null, 2));
 }
 
 
@@ -119,6 +131,7 @@ app.post("/signup", (req, res) => {
         password, 
         profileImage: "/images/User_defaultImg.png",
         provider: "Local",
+        playtime: "00:00:00",
         mailbox: JSON.stringify([])
     });
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
@@ -278,24 +291,36 @@ app.post("/delete-account", authenticateToken, (req, res) => {
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
     const user = data.users.find(u => u.email === req.user.email);
 
-    if(!user) {
+    if (!user) {
         return res.status(404).json({ message: "사용자를 찾을 수 없습니다!!" });
     }
 
     // 기본 이미지가 아닌 경우에만 삭제
-    if(user.profileImage && !user.profileImage.includes("User_defaultImg.png")) {
+    if (user.profileImage && !user.profileImage.includes("User_defaultImg.png")) {
         const imagePath = path.join(__dirname, "public", user.profileImage);
-        if(fs.existsSync(imagePath)) {
+        if (fs.existsSync(imagePath)) {
             fs.unlinkSync(imagePath);
         }
     }
-    
-    const updatedUsers = data.users.filter(u=>u.email !== req.user.email);
-    fs.writeFileSync(USERS_FILE, JSON.stringify({ users: updatedUsers }, null, 2));
+
+    // 삭제된 사용자 이메일 저장 (Google 로그인 사용자만)
+    if (user.provider === "Google" && user.email) {
+        data.deletedUsers = data.deletedUsers || [];
+        if (!data.deletedUsers.includes(user.email)) {
+            data.deletedUsers.push(user.email);
+        }
+    }
+
+    // 유저 제거
+    const updatedUsers = data.users.filter(u => u.email !== req.user.email);
+    data.users = updatedUsers;
+
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
 
     res.clearCookie("token");
     res.json({ message: "회원탈퇴가 완료되었습니다.." });
 });
+
 
 
 // 사용자 우편함 불러오기
@@ -332,7 +357,7 @@ app.post("/mailbox", authenticateToken, (req, res) => {
 
 
 // 이벤트 아이템 반환
-app.get("/items", (req, res) => {
+app.get("/items", authenticateToken, (req, res) => {
     try {
         const itemsData = JSON.parse(fs.readFileSync(ITEMS_PATH, "utf-8"));
         res.json(itemsData);
