@@ -7,35 +7,45 @@ const PlaytimeContext = createContext();
 export const PlaytimeProvider = ({ children }) => {
   const [currentPlaytime, setCurrentPlaytime] = useState(0);
   const timerRef = useRef(null);
-  const initializedRef = useRef(false);  // 한 번만 실행되도록 제어
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-  const initPlaytime = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/status", {
-        withCredentials: true,
-      });
+    const initPlaytime = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/status", {
+          withCredentials: true,
+        });
 
-      if (res.data.loggedIn) {
-        const initial = parseTimeString(res.data.user.playtime || "00:00:00");
-        setCurrentPlaytime(initial);
+        if (res.data.loggedIn) {
+          const savedPlaytime = parseTimeString(res.data.user.playtime || "00:00:00");
+          const lastUpdatedAt = res.data.user.lastUpdatedAt;
+          let timePassed = 0;
 
-        timerRef.current = setInterval(() => {
-          setCurrentPlaytime((prev) => prev + 1);
-        }, 1000);
+          if (lastUpdatedAt) {
+            const now = new Date().getTime();
+            const last = new Date(lastUpdatedAt).getTime();
+            timePassed = Math.floor((now - last) / 1000); // ms → 초
+          }
+
+          const adjustedPlaytime = savedPlaytime + timePassed;
+          setCurrentPlaytime(adjustedPlaytime);
+
+          timerRef.current = setInterval(() => {
+            setCurrentPlaytime((prev) => prev + 1);
+          }, 1000);
+        }
+      } catch (err) {
+        console.error("Playtime 초기화 실패", err);
       }
-    } catch (err) {
-      console.error("Playtime 초기화 실패", err);
+    };
+
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      initPlaytime();
     }
-  };
 
-  if (!initializedRef.current) {
-    initializedRef.current = true;
-    initPlaytime(); // → document.cookie 체크 없이 바로 실행
-  }
-
-  return () => clearInterval(timerRef.current);
-}, []);
+    return () => clearInterval(timerRef.current);
+  }, []);
 
   return (
     <PlaytimeContext.Provider value={{ currentPlaytime, setCurrentPlaytime }}>

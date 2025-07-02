@@ -7,8 +7,8 @@ import { formatSeconds, parseTimeString } from "../utils/formatTime";
 
 const Event = () => {
     const [events, setEvents] = useState([]);
+    const [unlockTimes, setUnlockTimes] = useState([]);
     const { currentPlaytime } = usePlaytime();
-    const timerRef = useRef(null);
     const hasFetched = useRef(false); // 이 변수로 중복 방지
 
     useEffect(() => {
@@ -30,20 +30,25 @@ const Event = () => {
                 const itemsRes = await axios.get("http://localhost:5000/items", {
                     withCredentials: true
                 });
-                setEvents(itemsRes.data.events);
-                
+                setEvents(itemsRes.data.events || []);
+
+                const times = (itemsRes.data.events || []).map(ev => 
+                    parseTimeString(ev.time)
+                );
+                setUnlockTimes(times);
+
             } catch (err) {
                 alert("로그인이 필요합니다.");
                 window.location.href = "/";
             }
         };
-
         fetchProtectedData();
-        return () => clearInterval(timerRef.current);
     }, []);
 
     const handleClick = (index) => {
-        alert(`${events[index].title} 클릭됨!`);
+        if(currentPlaytime >= unlockTimes[index]) {
+            alert(`${events[index].title} 클릭됨!`);
+        }
     };
 
     return (
@@ -57,20 +62,32 @@ const Event = () => {
             </div>
             {/* 이벤트 영역 */}
             <div className="event-container">
-                {events.map((event, index) => (
-                    <div className="event-wrapper" key={index}>
-                        <div className="event-time">{event.time}</div>
-                        <div className="event-box" onClick={() => handleClick(index)}>
-                            <div className="image-wrapper">
-                                <img src={event.image} alt={event.title} />
-                            </div>
-                            <div className="event-info">
-                                <h3>{event.title}</h3>
-                                <p>{event.description}</p>
+                {events.map((event, index) => {
+                    const unlocked = currentPlaytime >= unlockTimes[index];
+                    return (
+                        <div className={`event-wrapper ${unlocked ? "" : "locked"}`} key={index}>
+                            <div className="event-time">{event.time}</div>
+                            <div 
+                                className="event-box" 
+                                onClick={() => unlocked && handleClick(index)}
+                                style={{
+                                    filter: unlocked ? "none" : "blur(3px)",
+                                    pointerEvents: unlocked ? "auto" : "none",
+                                    opacity: unlocked ? 1 : 0.5,
+                                    transition: "all 0.3s"
+                                }}
+                            >
+                                <div className="image-wrapper">
+                                    <img src={event.image} alt={event.title} />
+                                </div>
+                                <div className="event-info">
+                                    <h3>{event.title}</h3>
+                                    <p>{event.description}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </Wrapper>
     );

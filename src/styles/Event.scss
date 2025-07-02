@@ -3,7 +3,7 @@
 .event-header {
     position: relative;
     background-color: #1e1e1e;
-    color: white;
+    color: Nesting.$white;
     border-radius: 16px;
     height: 180px;
     margin: 60px auto 20px auto;
@@ -74,6 +74,12 @@
             flex-direction: column;
 
             &:hover {transform: scale(1.07);}
+
+            &.locked {
+                cursor: not-allowed;
+                filter: grayscale(100%) brightness(0.6);
+                pointer-events: none;
+            }
 
             .image-wrapper {
                 flex: 2;
