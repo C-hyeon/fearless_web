@@ -1,15 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "../styles/Event.scss";
 import Wrapper from "../components/Wrapper";
 
 const Event = () => {
     const [events, setEvents] = useState([]);
+    const hasFetched = useRef(false); // 이 변수로 중복 방지
 
     useEffect(() => {
-        axios.get("http://localhost:5000/items", {withCredentials: true})
-            .then(res => setEvents(res.data.events))
-            .catch(err => console.error("이벤트 로딩 실패: ", err));
+        if (hasFetched.current) return; // 이미 실행됐으면 무시
+        hasFetched.current = true;
+
+        const fetchProtectedData = async () => {
+            try {
+                const statusRes = await axios.get("http://localhost:5000/status", {
+                    withCredentials: true
+                });
+
+                if (!statusRes.data.loggedIn) {
+                    alert("로그인이 필요합니다.");
+                    window.location.href = "/";
+                    return;
+                }
+
+                const itemsRes = await axios.get("http://localhost:5000/items", {
+                    withCredentials: true
+                });
+                setEvents(itemsRes.data.events);
+            } catch (err) {
+                alert("로그인이 필요합니다.");
+                window.location.href = "/";
+            }
+        };
+
+        fetchProtectedData();
     }, []);
 
     const handleClick = (index) => {
