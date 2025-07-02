@@ -11,6 +11,8 @@ const Event = () => {
     const { currentPlaytime } = usePlaytime();
     const hasFetched = useRef(false); // 이 변수로 중복 방지
 
+    const [claimedTitles, setClaimedTitles] = useState([]);
+
     useEffect(() => {
         if (hasFetched.current) return; // 이미 실행됐으면 무시
         hasFetched.current = true;
@@ -37,6 +39,12 @@ const Event = () => {
                 );
                 setUnlockTimes(times);
 
+                const mailboxRes = await axios.get("http://localhost:5000/mailbox", {
+                    withCredentials: true
+                });
+                const mailboxTitles = mailboxRes.data.mailbox.map(mail => mail.title);
+                setClaimedTitles(mailboxTitles);
+
             } catch (err) {
                 alert("로그인이 필요합니다.");
                 window.location.href = "/";
@@ -45,11 +53,27 @@ const Event = () => {
         fetchProtectedData();
     }, []);
 
-    const handleClick = (index) => {
-        if(currentPlaytime >= unlockTimes[index]) {
-            alert(`${events[index].title} 클릭됨!`);
+    const handleClick = async (index) => {
+        const event = events[index];
+        if (currentPlaytime < unlockTimes[index]) return;
+        if (claimedTitles.includes(event.title)) {
+            alert("이미 수령한 아이템입니다!");
+            return;
+        }
+
+        try {
+            const res = await axios.post("http://localhost:5000/mailbox", {
+                title: event.title,
+                content: event.description
+            }, { withCredentials: true });
+
+            alert(res.data.message);
+            setClaimedTitles(prev => [...prev, event.title]);
+        } catch (err) {
+            alert("보상 수령 실패: " + (err.response?.data?.message || "오류"));
         }
     };
+
 
     return (
         <Wrapper>
@@ -64,24 +88,31 @@ const Event = () => {
             <div className="event-container">
                 {events.map((event, index) => {
                     const unlocked = currentPlaytime >= unlockTimes[index];
+                    const claimed = claimedTitles.includes(event.title);
+
                     return (
                         <div className={`event-wrapper ${unlocked ? "" : "locked"}`} key={index}>
                             <div className="event-time">{event.time}</div>
-                            <div 
-                                className="event-box" 
-                                onClick={() => unlocked && handleClick(index)}
+                            <div
+                                className="event-box"
+                                onClick={() => unlocked && !claimed && handleClick(index)}
                                 style={{
-                                    filter: unlocked ? "none" : "blur(3px)",
-                                    pointerEvents: unlocked ? "auto" : "none",
-                                    opacity: unlocked ? 1 : 0.5,
+                                    filter: unlocked && !claimed ? "none" : "grayscale(100%)",
+                                    pointerEvents: unlocked && !claimed ? "auto" : "none",
+                                    opacity: claimed ? 0.5 : 1,
+                                    position: "relative",
                                     transition: "all 0.3s"
                                 }}
                             >
+                                {claimed && (
+                                    <div className="claimed-overlay">수령 완료</div>
+                                )}
+
                                 <div className="image-wrapper">
                                     <img src={event.image} alt={event.title} />
                                 </div>
                                 <div className="event-info">
-                                    <h3>{event.title} X {event.count}</h3>
+                                    <h3>{event.title}</h3>
                                     <p>{event.description}</p>
                                 </div>
                             </div>

@@ -81,6 +81,21 @@
                 pointer-events: none;
             }
 
+            .claimed-overlay {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.6);
+                color: white;
+                padding: 6px 12px;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-family: Nesting.$main_font_Bold;
+                pointer-events: none;
+                z-index: 2;
+            }
+
             .image-wrapper {
                 flex: 2;
                 width: 100%;
