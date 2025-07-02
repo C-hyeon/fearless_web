@@ -133,7 +133,7 @@ app.post("/signup", (req, res) => {
         profileImage: "/images/User_defaultImg.png",
         provider: "Local",
         playtime: "00:00:00",
-        lastUpdatedAt: new Date().toISOString(),
+        lastUpdatedAt: "",
         mailbox: JSON.stringify([])
     });
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
@@ -151,6 +151,9 @@ app.post("/signin", (req, res) => {
         return res.status(401).json({ message: "이메일 또는 비밀번호가 잘못되었습니다." });
     }
 
+    user.lastUpdatedAt = new Date().toISOString();
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+
     // token 생성
     const token = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "1h" });
     
@@ -167,10 +170,24 @@ app.post("/signin", (req, res) => {
 
 
 // 로그아웃
-app.post("/signout", (req, res) => {
+app.post("/signout", authenticateToken, (req, res) => {
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    const user = data.users.find(u => u.email === req.user.email);
+
+    if (!user) {
+        return res.status(404).json({ message: "사용자를 찾을 수 없습니다!" });
+    }
+
+    // 저장할 마지막 플레이타임은 클라이언트에서 별도 요청으로 보내도록 설정했으므로
+    // 여기서는 마지막 저장 시간만 업데이트
+    user.lastUpdatedAt = new Date().toISOString();
+
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+
     res.clearCookie("token");   // 쿠키 삭제
     res.json({ message: "로그아웃 성공!" });
 });
+
 
 
 // 쿠키 기반 로그인 상태 확인
@@ -239,6 +256,14 @@ app.get("/auth/google", passport.authenticate("google", {
 app.get("/google/callback", passport.authenticate("google", {
     failureRedirect: "/login"
 }), (req, res) => {
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    const user = data.users.find(u => u.email === req.user.email);
+
+    if (user) {
+        user.lastUpdatedAt = new Date().toISOString(); 
+        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+    }
+
     // JWT 생성
     const token = jwt.sign({ email: req.user.email }, SECRET_KEY, { expiresIn: "1h" });
 
@@ -385,7 +410,6 @@ app.post("/save-playtime", authenticateToken, (req, res) => {
     if(!user) return res.status(404).json({message: "사용자 없음"});
 
     user.playtime = playtime;
-    user.lastUpdatedAt = new Date().toISOString();
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
     res.json({message: "플레이타임 저장 완료.."});
 });
