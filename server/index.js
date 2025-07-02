@@ -368,6 +368,20 @@ app.get("/items", authenticateToken, (req, res) => {
 });
 
 
+// 플레이타임 저장
+app.post("/save-playtime", authenticateToken, (req, res) => {
+    const {playtime} = req.body;
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    const user = data.users.find(u => u.email === req.user.email);
+
+    if(!user) return res.status(404).json({message: "사용자 없음"});
+
+    user.playtime = playtime;
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+    res.json({message: "플레이타임 저장 완료.."});
+});
+
+
 app.listen(PORT, () => {
     console.log(`서버 실행 중: http://localhost:${PORT}`);
 });
