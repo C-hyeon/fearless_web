@@ -29,5 +29,6 @@ dist-ssr
 /public/
 /src/data/
 server/users.json
+server/items.json
 server/.env
 server/public/images
