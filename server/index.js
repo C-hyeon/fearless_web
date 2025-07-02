@@ -50,6 +50,8 @@ app.use(bodyParser.json());
 
 const USERS_FILE = path.join(__dirname, "users.json");
 
+const ITEMS_PATH = path.join(__dirname, "items.json");
+
 // 직렬화 / 역직렬화
 passport.serializeUser((user, done)=>done(null, user));
 passport.deserializeUser((obj, done)=>done(null, obj));
@@ -326,6 +328,18 @@ app.post("/mailbox", authenticateToken, (req, res) => {
     user.mailbox = JSON.stringify(mailbox);
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
     res.json({message: "우편 추가됨"});
+});
+
+
+// 이벤트 아이템 반환
+app.get("/items", (req, res) => {
+    try {
+        const itemsData = JSON.parse(fs.readFileSync(ITEMS_PATH, "utf-8"));
+        res.json(itemsData);
+    } catch (err){
+        console.error("items.json 로딩실패: ", err);
+        res.status(500).json({message: "카드 데이터를 불러오지 못했습니다."});
+    }
 });
 
 
