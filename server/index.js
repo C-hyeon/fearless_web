@@ -85,6 +85,7 @@ passport.use(new GoogleStrategy({
             profileImage: "/images/User_defaultImg.png",
             provider: "Google",
             playtime: "00:00:00",
+            lastUpdatedAt: new Date().toISOString(),
             mailbox: JSON.stringify([])
         };
         data.users.push(user);
@@ -132,6 +133,7 @@ app.post("/signup", (req, res) => {
         profileImage: "/images/User_defaultImg.png",
         provider: "Local",
         playtime: "00:00:00",
+        lastUpdatedAt: new Date().toISOString(),
         mailbox: JSON.stringify([])
     });
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
@@ -176,7 +178,13 @@ app.get("/status", authenticateToken, (req, res) => {
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
     const user = data.users.find((u) => u.email === req.user.email);
     if(!user) return res.status(404).json({ loggedIn: false });
-    res.json({ loggedIn: true, user });
+    res.json({ 
+        loggedIn: true, 
+        user: {
+            ...user,
+            lastUpdatedAt: user.lastUpdatedAt || new Date().toISOString()
+        }
+    });
 });
 
 
@@ -377,6 +385,7 @@ app.post("/save-playtime", authenticateToken, (req, res) => {
     if(!user) return res.status(404).json({message: "사용자 없음"});
 
     user.playtime = playtime;
+    user.lastUpdatedAt = new Date().toISOString();
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
     res.json({message: "플레이타임 저장 완료.."});
 });
