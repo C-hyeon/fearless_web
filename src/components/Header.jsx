@@ -96,6 +96,8 @@ const Header = () => {
             const res = await axios.post("http://localhost:5000/signout", {}, {
                 withCredentials: true
             });
+            document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            
             alert(res.data.message);
             setUsers(null);
             setShowProfile(false);
