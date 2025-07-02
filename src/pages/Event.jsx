@@ -81,7 +81,7 @@ const Event = () => {
                                     <img src={event.image} alt={event.title} />
                                 </div>
                                 <div className="event-info">
-                                    <h3>{event.title}</h3>
+                                    <h3>{event.title} X {event.count}</h3>
                                     <p>{event.description}</p>
                                 </div>
                             </div>
