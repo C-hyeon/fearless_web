@@ -17,18 +17,15 @@ export const PlaytimeProvider = ({ children }) => {
         });
 
         if (res.data.loggedIn) {
-          const savedPlaytime = parseTimeString(res.data.user.playtime || "00:00:00");
-          const lastUpdatedAt = res.data.user.lastUpdatedAt;
-          let timePassed = 0;
+          const initialSeconds = parseTimeString(res.data.user.playtime || "00:00:00");
+          const lastUpdatedAt = new Date(res.data.user.lastUpdatedAt || new Date());
+          const now = new Date();
 
-          if (lastUpdatedAt) {
-            const now = new Date().getTime();
-            const last = new Date(lastUpdatedAt).getTime();
-            timePassed = Math.floor((now - last) / 1000); // ms → 초
-          }
+          // 로그인 이후 경과 시간만 계산
+          const elapsedSeconds = Math.floor((now - lastUpdatedAt) / 1000);
+          const total = initialSeconds + elapsedSeconds;
 
-          const adjustedPlaytime = savedPlaytime + timePassed;
-          setCurrentPlaytime(adjustedPlaytime);
+          setCurrentPlaytime(total);
 
           timerRef.current = setInterval(() => {
             setCurrentPlaytime((prev) => prev + 1);
