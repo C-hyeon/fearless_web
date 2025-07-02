@@ -2,9 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "../styles/Event.scss";
 import Wrapper from "../components/Wrapper";
+import { usePlaytime } from "../utils/PlaytimeContext";
+import { formatSeconds, parseTimeString } from "../utils/formatTime";
 
 const Event = () => {
     const [events, setEvents] = useState([]);
+    const { currentPlaytime } = usePlaytime();
+    const timerRef = useRef(null);
     const hasFetched = useRef(false); // 이 변수로 중복 방지
 
     useEffect(() => {
@@ -27,6 +31,7 @@ const Event = () => {
                     withCredentials: true
                 });
                 setEvents(itemsRes.data.events);
+                
             } catch (err) {
                 alert("로그인이 필요합니다.");
                 window.location.href = "/";
@@ -34,6 +39,7 @@ const Event = () => {
         };
 
         fetchProtectedData();
+        return () => clearInterval(timerRef.current);
     }, []);
 
     const handleClick = (index) => {
@@ -47,7 +53,7 @@ const Event = () => {
                 <div className="event-description">
                     FearLess 게임 플레이타임 이벤트에 참여하고 다양한 보상을 받아보세요!
                 </div>
-                <div className="time-label">00:00:00</div>
+                <div className="time-label">{formatSeconds(currentPlaytime)}</div>
             </div>
             {/* 이벤트 영역 */}
             <div className="event-container">

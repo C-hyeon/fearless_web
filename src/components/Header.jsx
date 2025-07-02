@@ -10,8 +10,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import Modal from "./Modal";
 import Profile from "../pages/Profile";
 import "../styles/Header.scss";
+import { formatSeconds } from "../utils/formatTime";
+import { usePlaytime } from "../utils/PlaytimeContext";
 
 const Header = () => {
+    const { currentPlaytime } = usePlaytime();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showSignup, setShowSignup] = useState(false);
     const [signupForm, setSignupForm] = useState({
@@ -93,6 +96,12 @@ const Header = () => {
         if(!confirmSignout) return;
 
         try {
+            // 저장할 시간 전송
+            await axios.post("http://localhost:5000/save-playtime", {
+                playtime: formatSeconds(currentPlaytime)
+            }, {withCredentials: true});
+
+            // 사용자 로그아웃
             const res = await axios.post("http://localhost:5000/signout", {}, {
                 withCredentials: true
             });
