@@ -377,6 +377,13 @@ app.post("/mailbox", authenticateToken, (req, res) => {
     if(!user) return res.status(404).json({message: "사용자 없음"});
 
     const mailbox = JSON.parse(user.mailbox || "[]");
+
+    // 이미 수령한 보상인지 확인
+    const alreadyClaimed = mailbox.some(mail => mail.title === title);
+    if (alreadyClaimed) {
+        return res.status(400).json({ message: "이미 수령한 보상입니다!" });
+    }
+
     mailbox.push({
         title,
         content,
@@ -385,7 +392,7 @@ app.post("/mailbox", authenticateToken, (req, res) => {
 
     user.mailbox = JSON.stringify(mailbox);
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    res.json({message: "우편 추가됨"});
+    res.json({message: "보상 수령 완료"});
 });
 
 
