@@ -1,0 +1,114 @@
+@use "Nesting";
+
+.event-header {
+    position: relative;
+    background-color: #1e1e1e;
+    color: white;
+    border-radius: 16px;
+    height: 180px;
+    margin: 60px auto 20px auto;
+    max-width: 800px;
+    width: 100%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    .event-description {
+        font-family: Nesting.$main_font_Light;
+        font-size: 1.2rem;
+        text-align: center;
+        padding: 0 20px;
+        color: Nesting.$white;
+    }
+
+    .time-label {
+        position: absolute;
+        bottom: 16px;
+        right: 24px;
+        font-family: Nesting.$main_font_Bold;
+        font-size: 1.4rem;
+        color: Nesting.$red;
+        background-color: rgba(0, 0, 0, 0.4);
+        padding: 6px 12px;
+        border-radius: 8px;
+    }
+}
+
+
+.event-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+    padding: 100px 60px;
+    max-width: 1200px;
+    min-height: 900px;
+    margin: 0 auto;
+
+    .event-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        .event-time {
+            font-family: Nesting.$main_font_Bold;
+            color: Nesting.$white;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .event-box {
+            background-color: Nesting.$white;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+
+            display: flex;
+            flex-direction: column;
+
+            &:hover {transform: scale(1.07);}
+
+            .image-wrapper {
+                flex: 2;
+                width: 100%;
+                overflow: hidden;
+
+                img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+                }
+            }
+
+            .event-info {
+                flex: 1;
+                padding: 12px 4px;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+
+                h3 {
+                    color: Nesting.$black;
+                    font-size: 1rem;
+                    font-family: Nesting.$main_font_Bold;
+                }
+
+                p {
+                    font-size: 0.6rem;
+                    font-family: Nesting.$main_font_Light;
+                    color: Nesting.$gray;
+                    margin: 0;
+                }
+            }
+        }
+    }
+}
