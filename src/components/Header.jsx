@@ -13,6 +13,8 @@ import "../styles/Header.scss";
 import { formatSeconds } from "../utils/formatTime";
 import { usePlaytime } from "../utils/PlaytimeContext";
 
+import Cookies from "js-cookie";
+
 const Header = () => {
     const { currentPlaytime } = usePlaytime();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,6 +119,37 @@ const Header = () => {
     };
 
     useEffect(()=>{checkSigninStatus();}, []);
+
+    useEffect(() => {
+        const checkTokenRefresh = () => {
+            const token = Cookies.get("token");
+            if(!token) return;
+
+            // JWT 디코딩
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            const exp = payload.exp * 1000;     // 만료시간 ms
+            const now = Date.now();
+            const timeLeft = exp - now;
+
+            // 5분 이하 남으면 알림
+            if(timeLeft < 5 * 60 * 1000) {
+                const confirmed = window.confirm("로그인 세션이 곧 만료됩니다. 연장하시겠습니까?");
+                if (confirmed) {
+                    axios.post("http://localhost:5000/refresh-token", {}, {
+                        withCredentials: true
+                    }).then(res => {
+                        alert("로그인 세션이 연장되었습니다!");
+                    }).catch(() => {
+                        alert("세션 연장 실패.. 다시 로그인해주세요!");
+                        setUsers(null);
+                    });
+                }
+            }
+        };
+
+        const interval = setInterval(checkTokenRefresh, 60 * 1000); // 1분마다 체크
+        return () => clearInterval(interval);
+    }, []);
 
     // 이메일 인증 요청 - 서버
     const requestVerification = async () => {
