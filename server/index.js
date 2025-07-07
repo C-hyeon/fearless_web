@@ -155,15 +155,22 @@ app.post("/signin", (req, res) => {
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
 
     // token 생성
-    const token = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "1h" });
-    
+    const accessToken = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "1h" });
+    const refreshToken = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "7d" });
+
     // HTTP-Only 쿠키에 JWT 저장
-    res.cookie("token", token, {
+    res.cookie("token", accessToken, {
         httpOnly: true,
         secure: false,              // 배포(HTTPS)시 true
         sameSite: "lax",            // 대부분 ok
         maxAge: 3600000,            // 3600000 = 1시간
     });
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 7 * 24 * 3600000,   // 7*24*3600000 = 7일
+    })
 
     res.json({ message: "로그인 성공!", user });
 });
@@ -178,13 +185,10 @@ app.post("/signout", authenticateToken, (req, res) => {
         return res.status(404).json({ message: "사용자를 찾을 수 없습니다!" });
     }
 
-    // 저장할 마지막 플레이타임은 클라이언트에서 별도 요청으로 보내도록 설정했으므로
-    // 여기서는 마지막 저장 시간만 업데이트
-    user.lastUpdatedAt = new Date().toISOString();
-
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
 
-    res.clearCookie("token");   // 쿠키 삭제
+    res.clearCookie("token");           // token 삭제
+    res.clearCookie("refreshToken");    // refresh Token 삭제
     res.json({ message: "로그아웃 성공!" });
 });
 
@@ -265,13 +269,20 @@ app.get("/google/callback", passport.authenticate("google", {
     }
 
     // JWT 생성
-    const token = jwt.sign({ email: req.user.email }, SECRET_KEY, { expiresIn: "1h" });
+    const accessToken = jwt.sign({ email: req.user.email }, SECRET_KEY, { expiresIn: "1h" });
+    const refreshToken = jwt.sign({ email: req.user.email }, SECRET_KEY, { expiresIn: "7d" });
 
-    res.cookie("token", token, {
+    res.cookie("token", accessToken, {
         httpOnly: true,
-        secure: false, 
+        secure: false,
         sameSite: "lax",
         maxAge: 3600000
+    });
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 7 * 24 * 3600000
     });
 
     res.redirect("http://localhost:5173");  // 클라이언트 홈페이지 리디렉션
@@ -354,6 +365,35 @@ app.post("/delete-account", authenticateToken, (req, res) => {
     res.json({ message: "회원탈퇴가 완료되었습니다.." });
 });
 
+
+// 토큰 갱신
+app.post("/refresh-token", (req, res) => {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+        return res.status(401).json({ message: "Refresh token이 없습니다." });
+    }
+
+    jwt.verify(refreshToken, SECRET_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ message: "Refresh token이 유효하지 않습니다." });
+        }
+
+        const email = decoded.email;
+
+        // 새 access token 생성
+        const newAccessToken = jwt.sign({ email }, SECRET_KEY, { expiresIn: "1h" });
+
+        // 쿠키로 다시 저장
+        res.cookie("token", newAccessToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 3600000 // 1시간
+        });
+
+        res.json({ message: "Access token 갱신 완료" });
+    });
+});
 
 
 // 사용자 우편함 불러오기
