@@ -457,7 +457,7 @@ app.post("/mailbox", authenticateToken, (req, res) => {
 });
 
 
-// 이벤트 아이템 반환
+// 아이템 반환
 app.get("/items", authenticateToken, (req, res) => {
     try {
         const itemsData = JSON.parse(fs.readFileSync(ITEMS_PATH, "utf-8"));
