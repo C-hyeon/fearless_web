@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { FaUserCircle } from "react-icons/fa";
@@ -13,7 +13,6 @@ import "../styles/Header.scss";
 import { formatSeconds } from "../utils/formatTime";
 import { usePlaytime } from "../utils/PlaytimeContext";
 
-import Cookies from "js-cookie";
 
 const Header = () => {
     const { currentPlaytime } = usePlaytime();
@@ -31,6 +30,8 @@ const Header = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [showMailbox, setShowMailbox] = useState(false);
     const [mailbox, setMailbox] = useState([]);
+
+    const hasPromptedRef = useRef(false);
 
     const handleOpen = () => setIsModalOpen(true);
     const handleClose = () => {
@@ -121,35 +122,36 @@ const Header = () => {
     useEffect(()=>{checkSigninStatus();}, []);
 
     useEffect(() => {
-        const checkTokenRefresh = () => {
-            const token = Cookies.get("token");
-            if(!token) return;
+        const checkTokenExpiration = async () => {
+            if (hasPromptedRef.current) return; // 연장 알림 이미 띄웠으면 패스
 
-            // JWT 디코딩
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            const exp = payload.exp * 1000;     // 만료시간 ms
-            const now = Date.now();
-            const timeLeft = exp - now;
+            try {
+                const res = await axios.get("http://localhost:5000/token-info", {withCredentials: true});
+                if (!res.data.loggedIn) return;
 
-            // 5분 이하 남으면 알림
-            if(timeLeft < 5 * 60 * 1000) {
-                const confirmed = window.confirm("로그인 세션이 곧 만료됩니다. 연장하시겠습니까?");
-                if (confirmed) {
-                    axios.post("http://localhost:5000/refresh-token", {}, {
-                        withCredentials: true
-                    }).then(res => {
-                        alert("로그인 세션이 연장되었습니다!");
-                    }).catch(() => {
-                        alert("세션 연장 실패.. 다시 로그인해주세요!");
-                        setUsers(null);
-                    });
+                const exp = res.data.exp * 1000; // UNIX timestamp → ms
+                const now = Date.now();
+                const timeLeft = exp - now;
+
+                if (timeLeft < 5 * 60 * 1000) {
+                    hasPromptedRef.current = true; // 한 번만 알림 띄움
+
+                    const confirmed = window.confirm("로그인 세션이 곧 만료됩니다. 연장하시겠습니까?");
+                    if (confirmed) {
+                        await axios.post("http://localhost:5000/refresh-token", {}, {withCredentials: true});
+                        alert("세션이 연장되었습니다!");
+                        hasPromptedRef.current = false; // 다시 감지할 수 있도록 초기화 (선택사항)
+                    }
                 }
+            } catch (err) {
+                console.error("토큰 만료 확인 실패:", err);
             }
         };
 
-        const interval = setInterval(checkTokenRefresh, 60 * 1000); // 1분마다 체크
+        const interval = setInterval(checkTokenExpiration, 60 * 1000); // 1분마다 검사
         return () => clearInterval(interval);
     }, []);
+
 
     // 이메일 인증 요청 - 서버
     const requestVerification = async () => {

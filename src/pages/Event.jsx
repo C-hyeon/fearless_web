@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import Cookies from "js-cookie";
 import "../styles/Event.scss";
 import Wrapper from "../components/Wrapper";
 import { usePlaytime } from "../utils/PlaytimeContext";
@@ -11,7 +10,8 @@ const Event = () => {
     const [events, setEvents] = useState([]);
     const [unlockTimes, setUnlockTimes] = useState([]);
     const { currentPlaytime } = usePlaytime();
-    const hasFetched = useRef(false); // 이 변수로 중복 방지
+    const hasFetched = useRef(false);           // 이 변수로 중복 방지
+    const hasRefreshedRef = useRef(false);      // 1회만 자동 갱신
     const [claimedTitles, setClaimedTitles] = useState([]);
     const [isClaiming, setIsClaiming] = useState(false);
 
@@ -58,31 +58,30 @@ const Event = () => {
 
     // 2. 이벤트 페이지를 다시 활성화할 때 토큰 갱신 검사 상태관리 훅
     useEffect(() => {
-        const onVisible = () => {
-            // 탭 재활성화 시 갱신 로직 진행
-            const token = Cookies.get("token");
-            if(!token) return;
+        const onVisible = async () => {
+            if(hasRefreshedRef.current) return;
 
             try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                const exp = payload.exp * 1000;
+                const res = await axios.get("http://localhost:5000/token-info", {withCredentials: true});
+
+                if (!res.data.loggedIn) return;
+
+                const exp = res.data.exp * 1000;
                 const now = Date.now();
                 const timeLeft = exp - now;
 
-                if(timeLeft < 5 * 60 * 1000) {
-                    axios.post("http://localhost:5000/refresh-token", {}, {withCredentials: true})
-                    .then(() => console.log("세션 갱신됨.."))
-                    .catch(() => {
-                        window.location.href = "/";
-                    });
+                if (timeLeft < 5 * 60 * 1000) {
+                    await axios.post("http://localhost:5000/refresh-token", {}, {withCredentials: true});
+                    console.log("탭 복귀로 인해 세션 자동 연장됨");
+                    hasRefreshedRef.current = true;
                 }
-            } catch (e) {
-                console.error("토큰 디코딩 실패:", e);
+            } catch (err) {
+                console.error("토큰 검사 실패:", err);
             }
         };
 
         const handleVisibilityChange = () => {
-            if(document.visibilityState === "visible") {
+            if (document.visibilityState === "visible") {
                 onVisible();
             }
         };
@@ -90,6 +89,7 @@ const Event = () => {
         document.addEventListener("visibilitychange", handleVisibilityChange);
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, []);
+
 
     const handleClick = async (index) => {
         if(isClaiming) return;
