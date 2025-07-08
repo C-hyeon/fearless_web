@@ -1,0 +1,105 @@
+@use "Nesting";
+
+.store-container {
+    min-height: calc(100vh - 200px);
+    padding: 8rem 2rem 4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: repeating-linear-gradient(
+        -45deg,
+        #1e1e1e,
+        #1e1e1e 100px,
+        #242424 100px,
+        #242424 200px
+    );
+
+    .store-section {
+        width: 100%;
+        max-width: 1200px;
+        margin-bottom: 5rem;
+
+        .store-title-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+
+            .store-title {
+                font-size: 2rem;
+                font-family: Nesting.$main_font_Bold;
+                color: Nesting.$white;
+            }
+
+            .store-assets {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+
+                svg {
+                    color: Nesting.$main_color;
+                }
+
+                span {
+                    font-family: Nesting.$main_font_Light;
+                    color: Nesting.$main_color;
+                    font-size: 1rem;
+                    margin-left: 0.3rem;
+                }
+            }
+        }
+    }
+
+    .store-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 2.5rem;
+        justify-items: center;
+    }
+
+    .store-item {
+        background-color: Nesting.$black;
+        border: 3px solid Nesting.$main_color;
+        border-radius: 1.5rem;
+        padding: 1rem;
+        width: 220px;
+        height: 280px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        transition: transform 0.3s ease, background-color 0.3s ease;
+
+        &:hover {
+            transform: translateY(-5px);
+            background-color: #1a1a1a;
+        }
+
+        img {
+            width: 100%;
+            height: 140px;
+            object-fit: contain;
+            margin-bottom: 0.5rem;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            font-family: Nesting.$main_font_Bold;
+            margin: 0.2rem 0;
+            text-align: center;
+        }
+
+        .cost-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: Nesting.$main_color;
+            font-size: 0.9rem;
+            font-family: Nesting.$main_font_Light;
+
+            svg {
+                flex-shrink: 0;
+            }
+        }
+    }
+}
