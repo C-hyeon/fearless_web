@@ -366,6 +366,20 @@ app.post("/delete-account", authenticateToken, (req, res) => {
 });
 
 
+// 토큰 잔여시간 API
+app.get("/token-info", (req, res) => {
+    const token = req.cookies.token;
+    if(!token) return res.json({ loggedIn: false });
+
+    try {
+        const payload = jwt.decode(token);              // 서명 검증 X, payload만 추출
+        res.json({ loggedIn: true, exp: payload.exp }); // exp = UNIX timestamp (초단위)
+    } catch (err) {
+        res.status(400).json({ loggedIn: false });
+    }
+});
+
+
 // 토큰 갱신
 app.post("/refresh-token", (req, res) => {
     const refreshToken = req.cookies.refreshToken;
@@ -379,6 +393,13 @@ app.post("/refresh-token", (req, res) => {
         }
 
         const email = decoded.email;
+
+        // 유저 존재 여부 검증
+        const data = JSON.parse(fs.readFileSync(USERS_FILE));
+        const user = data.users.find(u => u.email === email);
+        if (!user) {
+            return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+        }
 
         // 새 access token 생성
         const newAccessToken = jwt.sign({ email }, SECRET_KEY, { expiresIn: "1h" });
