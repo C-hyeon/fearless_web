@@ -73,7 +73,6 @@ const Event = () => {
                     axios.post("http://localhost:5000/refresh-token", {}, {withCredentials: true})
                     .then(() => console.log("세션 갱신됨.."))
                     .catch(() => {
-                        alert("세션 연장 실패.. 다시 로그인해주세요!");
                         window.location.href = "/";
                     });
                 }

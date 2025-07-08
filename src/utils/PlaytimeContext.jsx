@@ -9,6 +9,20 @@ export const PlaytimeProvider = ({ children }) => {
   const timerRef = useRef(null);
   const initializedRef = useRef(false);
 
+  const handleSessionExpired = async () => {
+    try {
+      await axios.post("http://localhost:5000/save-playtime", {
+        playtime: new Date(currentPlaytime * 1000).toISOString().substr(11, 8)
+      }, { withCredentials: true });
+    } catch (e) {
+      console.error("플레이타임 저장 실패:", e);
+    }
+
+    clearInterval(timerRef.current);
+    alert("세션이 만료되어 로그아웃됩니다.");
+    window.location.href = "/";
+  };
+
   useEffect(() => {
     const initPlaytime = async () => {
       try {
@@ -37,7 +51,7 @@ export const PlaytimeProvider = ({ children }) => {
         }
       } catch (err) {
         console.error("Playtime 초기화 실패", err);
-        clearInterval(timerRef.current);
+        await handleSessionExpired();
       }
     };
 
@@ -76,7 +90,7 @@ export const PlaytimeProvider = ({ children }) => {
           }
         } catch (err) {
           console.error("세션 갱신 실패 또는 만료", err);
-          clearInterval(timerRef.current);
+          await handleSessionExpired();
         }
       }
     };
