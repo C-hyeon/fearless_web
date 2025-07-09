@@ -38,7 +38,7 @@ const Store = () => {
                 setGameItems(res.data.gameItems || []);
 
             } catch (err) {
-                alert("상점 정보를 불러오지 못했습니다.");
+                alert("로그인이 필요합니다.");
                 window.location.href = "/";
             }
         };

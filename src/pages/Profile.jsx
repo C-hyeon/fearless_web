@@ -74,13 +74,13 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                         <h2 className="name">{user.name}</h2>
                         <div className="status">
                             <div className="status_row">
-                                <span>LEVEL</span>
-                                <span>00</span>     {/* 게임 연동 필수 */}
+                                <span>웹상점티켓</span>
+                                <span>0</span>     {/* 게임 연동 필수 */}
                             </div>
                             <hr className="status_divider" />
                             <div className="status_row">
-                                <span>STAGE</span>
-                                <span>00</span>     {/* 게임 연동 필수 */}
+                                <span>골드</span>
+                                <span>0</span>     {/* 게임 연동 필수 */}
                             </div>
                         </div>
                     </div>
