@@ -86,7 +86,10 @@ passport.use(new GoogleStrategy({
             provider: "Google",
             playtime: "00:00:00",
             lastUpdatedAt: new Date().toISOString(),
-            mailbox: JSON.stringify([])
+            mailbox: JSON.stringify([]),
+            claimedRewards: [],
+            ticket: 0,
+            coin: 0
         };
         data.users.push(user);
         fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
@@ -134,7 +137,10 @@ app.post("/signup", (req, res) => {
         provider: "Local",
         playtime: "00:00:00",
         lastUpdatedAt: "",
-        mailbox: JSON.stringify([])
+        mailbox: JSON.stringify([]),
+        claimedRewards: [],
+        ticket: 0,
+        coin: 0
     });
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
     res.json({ message: "회원가입 성공!" });
@@ -431,29 +437,67 @@ app.get("/mailbox", authenticateToken, (req, res) => {
 
 // 사용자 우편 추가
 app.post("/mailbox", authenticateToken, (req, res) => {
-    const {title, content} = req.body;
+    const { title, content } = req.body;
     const data = JSON.parse(fs.readFileSync(USERS_FILE));
     const user = data.users.find(u => u.email === req.user.email);
 
-    if(!user) return res.status(404).json({message: "사용자 없음"});
+    if (!user) return res.status(404).json({ message: "사용자 없음" });
 
+    // 티켓/골드 직접 지급 대상
+    const ticketTitles = ["웹 상점 티켓권 X 1", "웹 상점 티켓권 X 3"];
+    const coinTitles = ["골드 X 5,000", "골드 X 10,000"];
+
+    user.claimedRewards = user.claimedRewards || []; // 필드 없으면 생성
+
+    if (ticketTitles.includes(title)) {
+        // 이미 수령한 경우
+        if (user.claimedRewards.includes(title)) {
+            return res.status(400).json({ message: "이미 수령한 보상입니다!" });
+        }
+
+        const count = parseInt(title.split("X")[1].trim());
+        user.ticket = (user.ticket || 0) + count;
+
+        user.claimedRewards.push(title); // 수령 기록
+        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+        return res.json({ message: `티켓 ${count}개 지급 완료` });
+    }
+
+    if (coinTitles.includes(title)) {
+        if (user.claimedRewards.includes(title)) {
+            return res.status(400).json({ message: "이미 수령한 보상입니다!" });
+        }
+
+        const count = parseInt(title.split("X")[1].replace(",", "").trim());
+        user.coin = (user.coin || 0) + count;
+
+        user.claimedRewards.push(title); // 수령 기록
+        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+        return res.json({ message: `골드 ${count.toLocaleString()} 지급 완료` });
+    }
+
+    // 기본: mailbox에 저장
     const mailbox = JSON.parse(user.mailbox || "[]");
-
-    // 이미 수령한 보상인지 확인
     const alreadyClaimed = mailbox.some(mail => mail.title === title);
     if (alreadyClaimed) {
         return res.status(400).json({ message: "이미 수령한 보상입니다!" });
     }
 
+    const itemsData = JSON.parse(fs.readFileSync(ITEMS_PATH, "utf-8"));
+    const matchedEvent = (itemsData.events || []).find(e => e.title === title);
+    const count = matchedEvent?.count || 1;
+
     mailbox.push({
         title,
         content,
+        source: "이벤트",
+        count,
         date: new Date().toISOString()
     });
 
     user.mailbox = JSON.stringify(mailbox);
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    res.json({message: "보상 수령 완료"});
+    res.json({ message: "보상 수령 완료" });
 });
 
 
@@ -466,6 +510,44 @@ app.get("/items", authenticateToken, (req, res) => {
         console.error("items.json 로딩실패: ", err);
         res.status(500).json({message: "카드 데이터를 불러오지 못했습니다."});
     }
+});
+
+
+// 티켓/코인으로 상점 아이템 구매
+app.post("/purchase", authenticateToken, (req, res) => {
+    const { item, type } = req.body; 
+    const data = JSON.parse(fs.readFileSync(USERS_FILE));
+    const user = data.users.find(u => u.email === req.user.email);
+
+    if (!user) return res.status(404).json({ message: "사용자 없음" });
+
+    // 차감 확인
+    if (type === "web") {
+        if (user.ticket < item.cost) {
+            return res.status(400).json({ message: "티켓이 부족합니다." });
+        }
+        user.ticket -= item.cost;
+    } else if (type === "game") {
+        if (user.coin < item.cost) {
+            return res.status(400).json({ message: "골드가 부족합니다." });
+        }
+        user.coin -= item.cost;
+    }
+
+    // 우편함에 저장
+    const mailbox = JSON.parse(user.mailbox || "[]");
+    mailbox.push({
+        title: item.title,
+        content: `${type === "web" ? "웹상점" : "게임상점"}에서 구매한 아이템입니다.`,
+        source: type === "web" ? "웹상점" : "게임상점",
+        count: item.count,
+        date: new Date().toISOString()
+    });
+
+    user.mailbox = JSON.stringify(mailbox);
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+
+    return res.json({ message: "구매 완료" });
 });
 
 
