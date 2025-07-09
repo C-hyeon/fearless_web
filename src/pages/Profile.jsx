@@ -75,12 +75,12 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                         <div className="status">
                             <div className="status_row">
                                 <span>웹상점티켓</span>
-                                <span>0</span>     {/* 게임 연동 필수 */}
+                                <span>{user.ticket ?? 0}</span>
                             </div>
                             <hr className="status_divider" />
                             <div className="status_row">
                                 <span>골드</span>
-                                <span>0</span>     {/* 게임 연동 필수 */}
+                                <span>{user.coin ?? 0}</span>
                             </div>
                         </div>
                     </div>

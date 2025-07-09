@@ -241,15 +241,28 @@ const Header = () => {
                             {mailbox.length === 0 ? (
                                 <p>수신된 우편이 없습니다.</p>
                             ) : (
-                                <ul>
-                                    {mailbox.map((mail, idx) => (
-                                        <li key={idx}>
-                                            <strong>{mail.title}</strong><br/>
-                                            <span>{mail.content}</span><br/>
-                                            <small>{new Date(mail.date).toLocaleString()}</small>
-                                        </li>
-                                    ))}
-                                </ul>
+                                <table className="mailbox-table">
+                                    <thead>
+                                        <tr>
+                                        <th>#</th>
+                                        <th>출처</th>
+                                        <th>이름</th>
+                                        <th>수량</th>
+                                        <th>날짜</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {mailbox.map((mail, idx) => (
+                                        <tr key={idx}>
+                                            <td>{idx + 1}</td>
+                                            <td>{mail.source || "시스템"}</td>
+                                            <td>{mail.title}</td>
+                                            <td>{mail.count ?? 1}</td>
+                                            <td>{new Date(mail.date).toLocaleString()}</td>
+                                        </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             )}
                         </>
                     ) : (

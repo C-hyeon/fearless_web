@@ -17,7 +17,7 @@ const Event = () => {
 
     // 1. 데이터 로딩 상태관리 훅
     useEffect(() => {
-        if (hasFetched.current) return; // 이미 실행됐으면 무시
+        if (hasFetched.current) return;
         hasFetched.current = true;
 
         const fetchProtectedData = async () => {
@@ -46,7 +46,10 @@ const Event = () => {
                     withCredentials: true
                 });
                 const mailboxTitles = mailboxRes.data.mailbox.map(mail => mail.title);
-                setClaimedTitles(mailboxTitles);
+
+                const claimedRewards = statusRes.data.user.claimedRewards || [];
+
+                setClaimedTitles([...mailboxTitles, ...claimedRewards]);
 
             } catch (err) {
                 alert("로그인이 필요합니다.");
@@ -110,7 +113,7 @@ const Event = () => {
             }, { withCredentials: true });
 
             alert(res.data.message);
-            setClaimedTitles(prev => [...prev, event.title]);
+            window.location.reload();
         } catch (err) {
             alert("보상 수령 실패: " + (err.response?.data?.message || "오류"));
         } finally {

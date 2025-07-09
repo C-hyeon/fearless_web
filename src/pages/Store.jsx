@@ -10,9 +10,23 @@ import { TbCoin } from "react-icons/tb";
 const Store = () => {
     const [webItems, setWebItems] = useState([]);
     const [gameItems, setGameItems] = useState([]);
-    const [ticketCount, setTicketCount] = useState(5); // 임시 수치
-    const [goldCount, setGoldCount] = useState(8000);  // 임시 수치
+    const [ticketCount, setTicketCount] = useState(0);
+    const [goldCount, setGoldCount] = useState(0);
     const hasFetched = useRef(false);
+
+    const handlePurchase = async (item, type) => {
+        try {
+            const res = await axios.post("http://localhost:5000/purchase", {
+                item,
+                type
+            }, { withCredentials: true });
+
+            alert(res.data.message);
+            window.location.reload(); // 티켓/골드 & 우편함 갱신
+        } catch (err) {
+            alert(err.response?.data?.message || "구매 실패");
+        }
+    };
 
     useEffect(() => {
         if (hasFetched.current) return;
@@ -20,6 +34,7 @@ const Store = () => {
 
         const fetchStoreItems = async () => {
             try {
+                // 1. 유저 상태 확인 및 ticket/coin 수치 가져오기
                 const statusRes = await axios.get("http://localhost:5000/status", {
                     withCredentials: true
                 });
@@ -30,6 +45,13 @@ const Store = () => {
                     return;
                 }
 
+                const user = statusRes.data.user;
+
+                // 티켓/골드 상태에 반영
+                setTicketCount(user.ticket ?? 0);
+                setGoldCount(user.coin ?? 0);
+
+                // 상점 아이템 불러오기
                 const res = await axios.get("http://localhost:5000/items", {
                     withCredentials: true
                 });
@@ -69,7 +91,17 @@ const Store = () => {
 
                     <div className="store-grid">
                         {webItems.map((item) => (
-                            <div className="store-item" key={item.id}>
+                            <div 
+                                className="store-item" 
+                                key={item.id} 
+                                onClick={() => {
+                                    if (ticketCount >= item.cost) {
+                                        handlePurchase(item, "web");
+                                    } else {
+                                        alert("티켓이 부족합니다.");
+                                    }
+                                }}
+                            >
                                 <img src={item.image} alt={item.title} />
                                 <h4>{item.title} X {item.count}</h4>
                                 <div className="cost-wrapper">
@@ -91,7 +123,17 @@ const Store = () => {
                     <h2 className="store-title">게임상점</h2>
                     <div className="store-grid">
                         {gameItems.map((item) => (
-                            <div className="store-item" key={item.id}>
+                            <div 
+                                className="store-item" 
+                                key={item.id} 
+                                onClick={() => {
+                                    if (goldCount >= item.cost) {
+                                        handlePurchase(item, "game");
+                                    } else {
+                                        alert("골드가 부족합니다.");
+                                    }
+                                }}
+                            >
                                 <img src={item.image} alt={item.title} />
                                 <h4>{item.title} X {item.count}</h4>
                                 <div className="cost-wrapper">
@@ -102,7 +144,6 @@ const Store = () => {
                         ))}
                     </div>
                 </motion.div>
-
             </div>
         </Wrapper>
     );

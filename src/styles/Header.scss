@@ -206,3 +206,26 @@
     background-color: #f5f5f5;
     color: #666666;
 }
+
+// 우편함 테이블 스타일
+.mailbox-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+
+    th, td {
+        font-family: Nesting.$main_font_Light;
+        padding: 8px 12px;
+        text-align: center;
+        border: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #444;
+        color: Nesting.$white;
+    }
+
+    tr:nth-child(even) { background-color: #f5f5f5; }
+
+    tr:hover { background-color: #e0e0e0; }
+}
