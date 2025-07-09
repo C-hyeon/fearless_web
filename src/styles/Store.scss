@@ -19,13 +19,19 @@
         max-width: 1200px;
         margin-bottom: 5rem;
 
+        .store-title {          // 게임상점 Title
+            font-size: 2rem;
+            font-family: Nesting.$main_font_Bold;
+            color: Nesting.$white;
+        }
+
         .store-title-wrapper {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
 
-            .store-title {
+            .store-title {      // 웹상점 Title
                 font-size: 2rem;
                 font-family: Nesting.$main_font_Bold;
                 color: Nesting.$white;
