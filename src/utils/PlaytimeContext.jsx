@@ -28,14 +28,17 @@ export const PlaytimeProvider = ({ children }) => {
     window.location.href = "/";
   };
 
-  // ✅ 토큰 갱신 로직 (공통)
+  // 토큰 갱신 로직 (공통)
   const checkAndRefreshToken = async () => {
     try {
       const res = await axios.get("http://localhost:5000/token-info", {
         withCredentials: true,
       });
 
-      if (!res.data.loggedIn) return;
+      if (!res.data.loggedIn) {
+        await handleSessionExpired();
+        return;
+      }
 
       const exp = res.data.exp * 1000;
       const now = Date.now();
@@ -76,7 +79,7 @@ export const PlaytimeProvider = ({ children }) => {
           console.log("비로그인 상태, 플레이타임 미적용");
         }
 
-        // ✅ 세션 확인 후 만료 임박하면 토큰 갱신 시도
+        // 세션 확인 후 만료 임박하면 토큰 갱신 시도
         await checkAndRefreshToken();
 
       } catch (err) {
@@ -120,7 +123,7 @@ export const PlaytimeProvider = ({ children }) => {
             console.log("세션 없음, 타이머 재시작 안함");
           }
 
-          // ✅ 탭 복귀 시 토큰 만료 임박 시 자동 연장
+          // 탭 복귀 시 토큰 만료 임박 시 자동 연장
           await checkAndRefreshToken();
 
         } catch (err) {

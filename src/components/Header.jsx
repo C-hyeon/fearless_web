@@ -123,24 +123,30 @@ const Header = () => {
 
     useEffect(() => {
         const checkTokenExpiration = async () => {
-            if (hasPromptedRef.current) return; // 연장 알림 이미 띄웠으면 패스
+            if (hasPromptedRef.current) return; // 연장 중복 방지
 
             try {
-                const res = await axios.get("http://localhost:5000/token-info", {withCredentials: true});
+                const res = await axios.get("http://localhost:5000/token-info", {
+                    withCredentials: true
+                });
+
                 if (!res.data.loggedIn) return;
 
-                const exp = res.data.exp * 1000; // UNIX timestamp → ms
+                const exp = res.data.exp * 1000;
                 const now = Date.now();
                 const timeLeft = exp - now;
 
                 if (timeLeft < 5 * 60 * 1000) {
-                    hasPromptedRef.current = true; // 한 번만 알림 띄움
+                    hasPromptedRef.current = true;
+                    try {
+                        await axios.post("http://localhost:5000/refresh-token", {}, {
+                            withCredentials: true
+                        });
+                        console.log("세션 자동 연장됨");
 
-                    const confirmed = window.confirm("로그인 세션이 곧 만료됩니다. 연장하시겠습니까?");
-                    if (confirmed) {
-                        await axios.post("http://localhost:5000/refresh-token", {}, {withCredentials: true});
-                        alert("세션이 연장되었습니다!");
-                        hasPromptedRef.current = false; // 다시 감지할 수 있도록 초기화 (선택사항)
+                        hasPromptedRef.current = false; 
+                    } catch (err) {
+                        console.error("세션 연장 실패:", err);
                     }
                 }
             } catch (err) {
@@ -148,7 +154,7 @@ const Header = () => {
             }
         };
 
-        const interval = setInterval(checkTokenExpiration, 60 * 1000); // 1분마다 검사
+        const interval = setInterval(checkTokenExpiration, 60 * 1000); // 1분 간격
         return () => clearInterval(interval);
     }, []);
 
