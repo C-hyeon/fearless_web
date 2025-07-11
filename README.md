@@ -44,23 +44,23 @@
 ### **5주차** (6/16 ~ 6/22)
 > - 사용자 인증 시스템 구현
 >> 1. 클라이언트 쪽 사용자 회원가입 및 로그인 Modal 창 마무리 구현
->> 2. *npm install express cors body-parser*
+>> 2. **(SERVER)** *npm install express cors body-parser*
 >> 3. 서버 폴더 설정 및 index.js + users.json 파일 기본 설정
 >> 4. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 설정 및 Client와 연동
 
 > - 프론트엔드(React) **Framer-Motion** 활용 웹 애니메이션 구현
->> 1. *npm install framer-motion*
+>> 1. **(CLIENT)** *npm install framer-motion*
 >> 2. Modal 창(로그인과 회원가입 하나의 Modal 창으로 통합) + 각 페이지 라우팅 애니메이션 연동 및 구현
 
 ### **6주차** (6/23 ~ 6/29)
 > - **JWT + Cookie** 활용 사용자 인증 시스템 전환 구현
->> 1. *npm install jsonwebtoken cookie-parser dotenv*
+>> 1. **(SERVER)** *npm install jsonwebtoken cookie-parser dotenv*
 >> 2. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 JWT와 Cookie로 변경
 >> 3. .env 파일 설정
 >>> 1) JWT 쪽 **SECRET_KEY** 설정
 >>> 2) *node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"*
 >> 4. **NodeMailer** 활용 이메일 인증코드 발송 시스템 구현
->>> 1) *npm install nodemailer*
+>>> 1) **(SERVER)** *npm install nodemailer*
 >>> 2) 새 구글 이메일 생성 및 2차 인증 / 앱 비밀번호 설정
 >>> 3) .env 파일에 **EMAIL_USER** / **EMAIL_PASS** 설정
 >>> 4) 서버 index.js 라우팅 추가 및 수정
@@ -69,7 +69,7 @@
 > - **Google OAuth 2.0** 활용 구글 인증 시스템 추가 구현
 >> 1. Google Cloud 인증 플랫폼 - 클라이언트 생성 및 ID + Password 설정
 >> 2. .env 파일에 **GOOGLE_CLIENT_ID** / **GOOGLE_CLIENT_SECRET** 설정
->> 3. *npm install passport passport-google-oauth20 express-session*
+>> 3. **(SERVER)** *npm install passport passport-google-oauth20 express-session*
 >> 4. 서버 index.js 라우팅 추가 및 JWT + Cookie 적용
 
 > - 사용자 프로필 Modal 창 구현
@@ -77,7 +77,7 @@
 >> 2. 클라이언트 Header 쪽 프로필 Modal 창 스타일 구현
 >> 3. 서버 index.js 회원정보수정 + 회원탈퇴 라우터 설정 및 구현
 >> 4. Modal(프로필과 회원정보수정 하나의 Modal 창으로 통합) 창 애니메이션 연동 및 구현
->> 5. *npm install multer*
+>> 5. **(SERVER)** *npm install multer*
 >> 6. 사용자 관련 로직(회원가입, 로그인, 프로필 등..)에 이미지 항목 추가
 >> 7. 서버 public\images 폴더 생성 및 상시 라우팅 설정
 >>> 1) *app.use("/images", express.static(path.join(__dirname, "public/images")));*
@@ -118,7 +118,7 @@
 ### **8주차** (7/7 ~ 7/13)
 > - 로컬 & 구글 로그인된 사용자 Token 갱신 시스템 구현
 >> 1. 서버 index.js 로컬 & 구글 로그인시 Access Token(1시간) + Refresh Token(7일) 발급받도록 라우터 수정
->> 2. ~~npm install js-cookie~~ 
+>> 2. **(CLIENT)** ~~npm install js-cookie~~ 
 >>> 1) 클라이언트 쪽 *npm install js-cookie* 진행
 >>> 2) 브라우저에서 Cookie 및 Token을 감지하지 못하는 오류 발생
 >>> 3) 애초에 **HttpOnly Cookie** 같은 경우 보안 프로토콜과 무관하게 브라우저에서 JS 접근 차단
@@ -133,14 +133,14 @@
 > - Store 페이지 UI 수정 및 서버 라우팅 구현
 >> 1. 상점 페이지 내부 웹_상점(웹에서만 구매가능) / 게임_상점(웹, 게임에서 둘다 구매가능) 2가지 상점 구현 및 애니메이션 추가 설정
 >> 2. 로컬 회원가입 및 구글 로그인 시 사용자 데이터 테이블에 'Ticket', 'Coin' 목록 추가 및 관련 라우터 수정
->> 3. *npm install react-icons*
+>> 3. **(CLIENT)** *npm install react-icons*
 >> 4. 우편함, 프로필 UI 수정 및 해당 데이터에 대한 서버 라우팅 변경
 >>> 1) 우편함(Mailbox) 목록 표 형태로 UI 수정 **(ID-출처-이름-수량-수령날짜 구조)**
 >>> 2) Event 페이지 목록 중 '웹상점티켓(Ticket)'과 '골드(Coin)'의 경우 우편함 전송이 아닌, USER 정보로 직접 저장 및 Profile_Modal 창 수량 표시
 >>> 3) Event 페이지 목록 중 나머지 아이템들은 우편함 전송으로 유지
 >>> 4) Store 페이지 목록 중 구매한 모든 아이템들은 우편함 전송으로 설정
 
-> - Firebase 데이터베이스 연동으로 모든 서버 라우팅 수정 및 기타 오류 수정
+> - **Firebase** 데이터베이스 연동으로 모든 서버 라우팅 수정 및 기타 오류 수정 (진행중)
 
 ### **9주차** (7/14 ~ 7/20)
 > - 웹사이트 상 Unity 게임 다운로드 기능 구현
