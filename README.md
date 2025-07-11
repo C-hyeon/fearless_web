@@ -1,6 +1,6 @@
 # FearLess [전공연구소모임 & 외부학술대회 연계]
 
-## 『 Planning 』
+## 『 Planning - FRONTEND & BACKEND 』
 
 ### **0주차** ( ~ 5/18)
 > - 주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
@@ -29,7 +29,8 @@
 >> 2. Main 페이지 스타일 및 컴포넌트 구성
 >> 3. Header 컴포넌트에 **Link** 라우터로 페이지 라우팅 구현
 
-> - 웹 스타일 언어 SCSS 공부
+> - 웹 스타일 언어 SCSS 설정
+>> 1. **(CLIENT)** *npm install sass*
 
 ### **3주차** (6/2 ~ 6/8)
 > - 와이어프레임 기반 웹 사이트 기본 구조 구현(2)
@@ -55,11 +56,12 @@
 ### **6주차** (6/23 ~ 6/29)
 > - **JWT + Cookie** 활용 사용자 인증 시스템 전환 구현
 >> 1. **(SERVER)** *npm install jsonwebtoken cookie-parser dotenv*
->> 2. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 JWT와 Cookie로 변경
->> 3. .env 파일 설정
+>> 2. **(CLIENT)** *npm install axios*
+>> 3. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 JWT와 Cookie로 변경
+>> 4. .env 파일 설정
 >>> 1) JWT 쪽 **SECRET_KEY** 설정
 >>> 2) *node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"*
->> 4. **NodeMailer** 활용 이메일 인증코드 발송 시스템 구현
+>> 5. **NodeMailer** 활용 이메일 인증코드 발송 시스템 구현
 >>> 1) **(SERVER)** *npm install nodemailer*
 >>> 2) 새 구글 이메일 생성 및 2차 인증 / 앱 비밀번호 설정
 >>> 3) .env 파일에 **EMAIL_USER** / **EMAIL_PASS** 설정
