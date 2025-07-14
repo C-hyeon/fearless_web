@@ -3,7 +3,7 @@ const serviceAccount = require("./serviceAccountKey.json"); // Firebase 서비�
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "fearless-project-id.appspot.com" // 실제 버킷 주소로 변경
+  storageBucket: "fearless-3e591.appspot.com" // 실제 버킷 주소로 변경
 });
 
 const db = admin.firestore();

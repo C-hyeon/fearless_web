@@ -40,30 +40,45 @@ app.post("/oauth/google", async (req, res) => {
     try {
         const userRef = db.collection("users").doc(uid);
         const doc = await userRef.get();
+
+        let playtime = "00:00:00"; // 기본값
+        const now = new Date().toISOString();
+
         if (!doc.exists) {
+            // 신규 가입자: playtime을 null로 초기화
             await userRef.set({
                 name,
                 email,
                 provider: "Google",
-                playtime: "00:00:00",
+                playtime: null,
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 claimedRewards: [],
                 ticket: 0,
                 coin: 0,
-                lastUpdatedAt: new Date().toISOString()
+                lastUpdatedAt: now
             });
         } else {
+            const data = doc.data();
+
+            // 기존 유저: playtime 필드가 있으면 그대로 사용
+            if (data && data.playtime) {
+                playtime = data.playtime;
+            }
+
             await userRef.update({
-                lastUpdatedAt: new Date().toISOString()
+                lastUpdatedAt: now
             });
         }
+
         const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
         const refreshToken = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "7d" });
+
         res.cookie("token", token, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 3600000 });
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 7 * 24 * 3600000 });
+
         res.json({
             message: "Google 로그인 완료",
-            playtime: doc.data().playtime || "00:00:00"
+            playtime
         });
     } catch (err) {
         res.status(500).json({ message: "Google OAuth 실패", error: err.message });
@@ -78,21 +93,32 @@ app.post("/sessionLogin", async (req, res) => {
         const userRef = db.collection("users").doc(uid);
         const doc = await userRef.get();
 
+        let playtime = "00:00:00"; // 기본값
+        const now = new Date().toISOString();
+
         if (!doc.exists) {
+            // 신규 가입자
             await userRef.set({
                 name: "로컬회원",
                 email,
                 provider: "Local",
-                playtime: "00:00:00",
+                playtime: null, // null로 저장하여 이후 계산에 유리
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 claimedRewards: [],
                 ticket: 0,
                 coin: 0,
-                lastUpdatedAt: new Date().toISOString()
+                lastUpdatedAt: now
             });
         } else {
+            const data = doc.data();
+
+            // playtime 필드가 존재하면 그걸 사용, 없으면 00:00:00
+            if (data && data.playtime) {
+                playtime = data.playtime;
+            }
+
             await userRef.update({
-                lastUpdatedAt: new Date().toISOString()
+                lastUpdatedAt: now
             });
         }
 
@@ -101,9 +127,10 @@ app.post("/sessionLogin", async (req, res) => {
 
         res.cookie("token", token, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 3600000 });
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 7 * 24 * 3600000 });
+
         res.json({
             message: "세션 로그인 완료",
-            playtime: doc.data().playtime || "00:00:00"
+            playtime
         });
     } catch (err) {
         res.status(500).json({ message: "세션 로그인 실패", error: err.message });
@@ -166,8 +193,10 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
         const userRecord = await auth.getUser(uid);
         const providerId = userRecord.providerData[0]?.providerId || "unknown";
 
+        // 이름 변경
         if (req.body.name) updateData.name = req.body.name;
 
+        // 비밀번호 변경 (로컬 사용자만)
         if (req.body.password) {
             if (providerId !== "password") {
                 return res.status(400).json({ message: "소셜 로그인 사용자는 비밀번호를 수정할 수 없습니다." });
@@ -178,32 +207,58 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
             await auth.updateUser(uid, { password: req.body.password });
         }
 
+        // 기본 이미지로 초기화 요청
         if (req.body.resetToDefault === "true") {
             updateData.profileImage = DEFAULT_PROFILE_IMAGE;
         }
 
+        // 프로필 이미지 업로드 처리
         if (req.file) {
-            const filename = `profiles/${uid}-${Date.now()}`;
-            const blob = bucket.file(filename);
-            const blobStream = blob.createWriteStream({ metadata: { contentType: req.file.mimetype } });
-            blobStream.end(req.file.buffer);
+            try {
+                if (!req.file.buffer || !req.file.mimetype.startsWith("image/")) {
+                    return res.status(400).json({ message: "유효한 이미지가 아닙니다." });
+                }
 
-            await new Promise((resolve, reject) => {
-                blobStream.on("finish", resolve);
-                blobStream.on("error", reject);
-            });
+                const filename = `profiles/${uid}-${Date.now()}`;
+                const token = uuidv4();
+                const blob = bucket.file(filename);
 
-            await blob.makePublic(); // ⬅️ 이미지 공개 처리 추가
+                const blobStream = blob.createWriteStream({
+                    metadata: {
+                        contentType: req.file.mimetype,
+                        metadata: {
+                            firebaseStorageDownloadTokens: token
+                        }
+                    }
+                });
 
-            const imageUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-            updateData.profileImage = imageUrl;
+                blobStream.end(req.file.buffer);
+
+                await new Promise((resolve, reject) => {
+                    blobStream.on("finish", resolve);
+                    blobStream.on("error", reject);
+                });
+
+                const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media&token=${token}`;
+                updateData.profileImage = imageUrl;
+
+            } catch (uploadErr) {
+                console.error("이미지 업로드 실패:", uploadErr);
+                return res.status(500).json({ message: "이미지 업로드 실패", error: uploadErr.message });
+            }
         }
 
+
+        // 업데이트 실행
         if (Object.keys(updateData).length > 0) {
             await userRef.update(updateData);
         }
 
-        res.json({ message: "회원정보가 성공적으로 수정되었습니다.", profileImage: updateData.profileImage });
+        res.json({
+            message: "회원정보가 성공적으로 수정되었습니다.",
+            profileImage: updateData.profileImage // 클라이언트에서 즉시 반영용
+        });
+
     } catch (err) {
         console.error("회원정보 수정 실패:", err);
         res.status(500).json({ message: "회원정보 수정 실패", error: err.message });
