@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { parseTimeString } from "./formatTime";
+import { parseTimeString, formatSeconds } from "./formatTime";
 
 const PlaytimeContext = createContext();
 
@@ -11,47 +11,39 @@ export const PlaytimeProvider = ({ children }) => {
   const initializedRef = useRef(false);
   const sessionExpiredRef = useRef(false);
 
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+      console.log("⏹️ 타이머 중단됨");
+    }
+  };
+
   const handleSessionExpired = async () => {
     if (sessionExpiredRef.current) return;
     sessionExpiredRef.current = true;
 
     try {
       await axios.post("http://localhost:5000/save-playtime", {
-        playtime: new Date(currentPlaytime * 1000).toISOString().substr(11, 8),
+        playtime: formatSeconds(currentPlaytime),
       }, { withCredentials: true });
     } catch (e) {
       console.error("플레이타임 저장 실패:", e);
     }
 
-    clearInterval(timerRef.current);
+    stopTimer();
     alert("세션이 만료되어 로그아웃됩니다.");
     window.location.href = "/";
   };
 
-  // 토큰 갱신 로직 (공통)
   const checkAndRefreshToken = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/token-info", {
+      await axios.post("http://localhost:5000/refresh-token", {}, {
         withCredentials: true,
       });
-
-      if (!res.data.loggedIn) {
-        await handleSessionExpired();
-        return;
-      }
-
-      const exp = res.data.exp * 1000;
-      const now = Date.now();
-      const timeLeft = exp - now;
-
-      if (timeLeft < 5 * 60 * 1000) {
-        await axios.post("http://localhost:5000/refresh-token", {}, {
-          withCredentials: true,
-        });
-        console.log("세션 자동 갱신됨");
-      }
+      console.log("🔄 세션 자동 갱신됨");
     } catch (err) {
-      console.error("토큰 만료시간 확인 또는 갱신 실패:", err);
+      console.error("토큰 갱신 실패:", err);
     }
   };
 
@@ -62,28 +54,29 @@ export const PlaytimeProvider = ({ children }) => {
           withCredentials: true,
         });
 
-        if (res.data.loggedIn) {
-          const initialSeconds = parseTimeString(res.data.user.playtime || "00:00:00");
-          const lastUpdatedAt = new Date(res.data.user.lastUpdatedAt || new Date());
-          const now = new Date();
-          const elapsedSeconds = Math.floor((now - lastUpdatedAt) / 1000);
-          const total = initialSeconds + elapsedSeconds;
-
-          setCurrentPlaytime(total);
-
-          if (timerRef.current) clearInterval(timerRef.current);
-          timerRef.current = setInterval(() => {
-            setCurrentPlaytime((prev) => prev + 1);
-          }, 1000);
-        } else {
-          console.log("비로그인 상태, 플레이타임 미적용");
+        if (!res.data.loggedIn) {
+          stopTimer();
+          console.log("⛔ 로그아웃 상태 확인됨 → 타이머 정지");
+          return;
         }
 
-        // 세션 확인 후 만료 임박하면 토큰 갱신 시도
-        await checkAndRefreshToken();
+        const playtimeString = res.data.user.playtime || "00:00:00";
 
+        const initialSeconds = parseTimeString(playtimeString);
+        const lastUpdatedAt = new Date(res.data.user.lastUpdatedAt || new Date());
+        const now = new Date();
+        const elapsedSeconds = Math.max(0, Math.floor((now - lastUpdatedAt) / 1000));
+        const total = initialSeconds + elapsedSeconds;
+
+        setCurrentPlaytime(total);
+
+        stopTimer();
+        timerRef.current = setInterval(() => {
+          setCurrentPlaytime((prev) => prev + 1);
+        }, 1000);
       } catch (err) {
         console.error("Playtime 초기화 실패", err);
+        stopTimer();
       } finally {
         setLoading(false);
       }
@@ -95,14 +88,16 @@ export const PlaytimeProvider = ({ children }) => {
     }
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      stopTimer();
+      sessionExpiredRef.current = false;
+      initializedRef.current = false;
     };
   }, []);
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === "hidden") {
-        clearInterval(timerRef.current);
+        stopTimer();
       } else if (document.visibilityState === "visible") {
         try {
           const res = await axios.get("http://localhost:5000/status", {
@@ -110,24 +105,27 @@ export const PlaytimeProvider = ({ children }) => {
           });
 
           if (res.data.loggedIn) {
-            const initialSeconds = parseTimeString(res.data.user.playtime || "00:00:00");
+            const playtimeString = res.data.user.playtime || "00:00:00";
+            const initialSeconds = parseTimeString(playtimeString);
             const lastUpdatedAt = new Date(res.data.user.lastUpdatedAt || new Date());
             const now = new Date();
-            const elapsedSeconds = Math.floor((now - lastUpdatedAt) / 1000);
+            const elapsedSeconds = Math.max(0, Math.floor((now - lastUpdatedAt) / 1000));
             setCurrentPlaytime(initialSeconds + elapsedSeconds);
 
+            stopTimer();
             timerRef.current = setInterval(() => {
               setCurrentPlaytime((prev) => prev + 1);
             }, 1000);
+
+            await checkAndRefreshToken();
+            console.log("👁️ 탭 복귀 → 세션 연장 완료");
           } else {
-            console.log("세션 없음, 타이머 재시작 안함");
+            stopTimer();
+            console.warn("⛔ 복귀 시 세션 없음 → 타이머 정지");
           }
-
-          // 탭 복귀 시 토큰 만료 임박 시 자동 연장
-          await checkAndRefreshToken();
-
         } catch (err) {
-          console.error("탭 복귀 시 세션 확인 실패", err);
+          stopTimer();
+          console.error("복귀 시 세션 확인 실패", err);
         }
       }
     };
@@ -135,6 +133,37 @@ export const PlaytimeProvider = ({ children }) => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const interval = setInterval(() => {
+      axios.post("http://localhost:5000/update-last-activity", {
+        playtime: formatSeconds(currentPlaytime)
+      }, {
+        withCredentials: true
+      }).then(() => {
+        console.log("🕒 lastUpdatedAt & playtime 갱신됨");
+      }).catch((err) => {
+        console.error("갱신 실패", err);
+      });
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [loading, currentPlaytime]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const blob = new Blob([JSON.stringify({
+        playtime: formatSeconds(currentPlaytime)
+      })], { type: 'application/json' });
+
+      navigator.sendBeacon("http://localhost:5000/update-last-activity", blob);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [currentPlaytime]);
 
   if (loading) return null;
 

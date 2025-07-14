@@ -1,3 +1,4 @@
+// 중복된 import 제거
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "../styles/Event.scss";
@@ -5,17 +6,16 @@ import Wrapper from "../components/Wrapper";
 import { usePlaytime } from "../utils/PlaytimeContext";
 import { formatSeconds, parseTimeString } from "../utils/formatTime";
 
-
 const Event = () => {
     const [events, setEvents] = useState([]);
     const [unlockTimes, setUnlockTimes] = useState([]);
     const { currentPlaytime } = usePlaytime();
-    const hasFetched = useRef(false);           // 이 변수로 중복 방지
-    const hasRefreshedRef = useRef(false);      // 1회만 자동 갱신
+    const hasFetched = useRef(false);
+    const hasRefreshedRef = useRef(false);
     const [claimedTitles, setClaimedTitles] = useState([]);
     const [isClaiming, setIsClaiming] = useState(false);
 
-    // 1. 데이터 로딩 상태관리 훅
+    // 1. 데이터 로딩
     useEffect(() => {
         if (hasFetched.current) return;
         hasFetched.current = true;
@@ -56,30 +56,23 @@ const Event = () => {
                 window.location.href = "/";
             }
         };
+
         fetchProtectedData();
     }, []);
 
-    // 2. 이벤트 페이지를 다시 활성화할 때 토큰 갱신 검사 상태관리 훅
+    // 2. 탭 복귀 시 토큰 갱신
     useEffect(() => {
         const onVisible = async () => {
-            if(hasRefreshedRef.current) return;
+            if (hasRefreshedRef.current) return;
 
             try {
-                const res = await axios.get("http://localhost:5000/token-info", {withCredentials: true});
-
-                if (!res.data.loggedIn) return;
-
-                const exp = res.data.exp * 1000;
-                const now = Date.now();
-                const timeLeft = exp - now;
-
-                if (timeLeft < 5 * 60 * 1000) {
-                    await axios.post("http://localhost:5000/refresh-token", {}, {withCredentials: true});
-                    console.log("탭 복귀로 인해 세션 자동 연장됨");
-                    hasRefreshedRef.current = true;
-                }
+                await axios.post("http://localhost:5000/refresh-token", {}, {
+                    withCredentials: true
+                });
+                console.log("탭 복귀로 인해 세션 자동 연장됨");
+                hasRefreshedRef.current = true;
             } catch (err) {
-                console.error("토큰 검사 실패:", err);
+                console.error("세션 자동 연장 실패:", err);
             }
         };
 
@@ -93,9 +86,8 @@ const Event = () => {
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, []);
 
-
     const handleClick = async (index) => {
-        if(isClaiming) return;
+        if (isClaiming) return;
         setIsClaiming(true);
 
         const event = events[index];
@@ -109,7 +101,8 @@ const Event = () => {
         try {
             const res = await axios.post("http://localhost:5000/mailbox", {
                 title: event.title,
-                content: event.description
+                content: event.description,
+                count: event.count || 1
             }, { withCredentials: true });
 
             alert(res.data.message);
@@ -121,17 +114,14 @@ const Event = () => {
         }
     };
 
-
     return (
         <Wrapper>
-            {/* 게임 플레이타임 영역 */}
             <div className="event-header">
                 <div className="event-description">
                     FearLess 게임 플레이타임 이벤트에 참여하고 다양한 보상을 받아보세요!
                 </div>
                 <div className="time-label">{formatSeconds(currentPlaytime)}</div>
             </div>
-            {/* 이벤트 영역 */}
             <div className="event-container">
                 {events.map((event, index) => {
                     const unlocked = currentPlaytime >= unlockTimes[index];
@@ -154,7 +144,6 @@ const Event = () => {
                                 {claimed && (
                                     <div className="claimed-overlay">수령 완료</div>
                                 )}
-
                                 <div className="image-wrapper">
                                     <img src={event.image} alt={event.title} />
                                 </div>
