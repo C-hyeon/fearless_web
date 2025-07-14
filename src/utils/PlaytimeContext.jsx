@@ -60,7 +60,7 @@ export const PlaytimeProvider = ({ children }) => {
           return;
         }
 
-        const playtimeString = res.data.user.playtime || "00:00:00";
+        const playtimeString = res.data.user.playtime ?? "00:00:00";
 
         const initialSeconds = parseTimeString(playtimeString);
         const lastUpdatedAt = new Date(res.data.user.lastUpdatedAt || new Date());
