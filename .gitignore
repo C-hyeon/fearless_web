@@ -28,7 +28,6 @@ dist-ssr
 # Client / Server management
 /public/
 /src/data/
-server/users.json
-server/items.json
 server/.env
-server/public/images
+server/serviceAccountKey.json
+server/public/
