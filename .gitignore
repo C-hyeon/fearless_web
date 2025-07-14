@@ -28,6 +28,7 @@ dist-ssr
 # Client / Server management
 /public/
 /src/data/
+/src/firebase.js
 server/.env
 server/serviceAccountKey.json
 server/public/
