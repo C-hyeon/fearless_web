@@ -3,568 +3,395 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const fs = require("fs");
-const path = require("path");
-const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const nodemailer = require("nodemailer");
-const session = require("express-session");
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const jwt = require("jsonwebtoken");
 const multer = require("multer");
-
+const { v4: uuidv4 } = require("uuid");
+const { db, auth, bucket } = require("./firebase");
+const { sendVerificationEmail } = require("./mailer");
 
 const app = express();
-const PORT = 5000;
-const SECRET_KEY = process.env.SECRET_KEY;  // 환경변수 설정
-let verificationCodes = {};                 // 메모리 저장
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const PORT = process.env.PORT || 5000;
+const SECRET_KEY = process.env.SECRET_KEY;
+const isProduction = process.env.NODE_ENV === "production";
 
-// Storage 설정
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, "public", "images"));    // 이미지 저장 경로
-    },
-    filename: (req, file, cb) => {
-        const unique = Date.now() + "-" + file.originalname;
-        cb(null, unique);
-    }
-});
+const DEFAULT_PROFILE_IMAGE = process.env.DEFAULT_IMAGE;
+
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(bodyParser.json());
+app.use(cookieParser());
+
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-
-app.use(cors({
-    origin: "http://localhost:5173",    // 클라이언트 주소
-    credentials: true                   // 쿠키 전송 허용
-}));
-app.use(cookieParser());
-app.use(session({
-    secret: "some_secret", resave: false, saveUninitialized: true
-}));
-app.use(passport.initialize());
-app.use(passport.session());
-app.use("/images", express.static(path.join(__dirname, "public/images")));
-
-app.use(bodyParser.json());
-
-const USERS_FILE = path.join(__dirname, "users.json");
-
-const ITEMS_PATH = path.join(__dirname, "items.json");
-
-// 직렬화 / 역직렬화
-passport.serializeUser((user, done)=>done(null, user));
-passport.deserializeUser((obj, done)=>done(null, obj));
-
-// 전략 등록
-passport.use(new GoogleStrategy({
-    clientID: GOOGLE_CLIENT_ID,
-    clientSecret: GOOGLE_CLIENT_SECRET, 
-    callbackURL: "/google/callback"
-}, (accessToken, refreshToken, profile, done) => {
-    // 사용자 확인 및 저장
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-
-    // 삭제된 사용자 이메일 목록이 있는지 확인
-    const deletedUsers = data.deletedUsers || [];
-
-    // 탈퇴한 사용자 목록에서 제거 (재가입 허용)
-    const email = profile.emails[0].value;
-    const deletedIndex = deletedUsers.indexOf(email);
-    if (deletedIndex !== -1) {
-        deletedUsers.splice(deletedIndex, 1);
-    }
-    
-    let user = data.users.find((u) => u.googleId === profile.id);
-
-    if(!user) {
-        user = {
-            name: profile.displayName,
-            email: profile.emails[0].value,
-            googleId: profile.id,
-            profileImage: "/images/User_defaultImg.png",
-            provider: "Google",
-            playtime: "00:00:00",
-            lastUpdatedAt: new Date().toISOString(),
-            mailbox: JSON.stringify([]),
-            claimedRewards: [],
-            ticket: 0,
-            coin: 0
-        };
-        data.users.push(user);
-        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    }
-
-    return done(null, user);
-}));
-
-
-// JSON 파일 초기화
-if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify({ users: [], deletedUsers: [] }, null, 2));
-}
-
-
-// 토큰 검증 미들웨어
 function authenticateToken(req, res, next) {
     const token = req.cookies.token;
-    if(!token) return res.sendStatus(401);
-
+    if (!token) return res.sendStatus(401);
     jwt.verify(token, SECRET_KEY, (err, user) => {
-        if(err) return res.sendStatus(403);
+        if (err) return res.sendStatus(403);
         req.user = user;
         next();
     });
 }
 
+// Google OAuth 로그인
+app.post("/oauth/google", async (req, res) => {
+    const { uid, email, name } = req.body;
+    try {
+        const userRef = db.collection("users").doc(uid);
+        const doc = await userRef.get();
+        if (!doc.exists) {
+            await userRef.set({
+                name,
+                email,
+                provider: "Google",
+                playtime: "00:00:00",
+                profileImage: DEFAULT_PROFILE_IMAGE,
+                claimedRewards: [],
+                ticket: 0,
+                coin: 0,
+                lastUpdatedAt: new Date().toISOString()
+            });
+        } else {
+            await userRef.update({
+                lastUpdatedAt: new Date().toISOString()
+            });
+        }
+        const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
+        const refreshToken = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "7d" });
+        res.cookie("token", token, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 3600000 });
+        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 7 * 24 * 3600000 });
+        res.json({
+            message: "Google 로그인 완료",
+            playtime: doc.data().playtime || "00:00:00"
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Google OAuth 실패", error: err.message });
+    }
+});
 
-// 회원가입
-app.post("/signup", (req, res) => {
-    const { name, email, password } = req.body;
+// 클라이언트 Firebase 로그인 후 세션 토큰 발급
+app.post("/sessionLogin", async (req, res) => {
+    const { uid, email } = req.body;
 
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const existing = data.users.find((u) => u.email === email);
+    try {
+        const userRef = db.collection("users").doc(uid);
+        const doc = await userRef.get();
 
-    if (existing) {
-        return res.status(400).json({ message: "이미 존재하는 이메일입니다." });
+        if (!doc.exists) {
+            await userRef.set({
+                name: "로컬회원",
+                email,
+                provider: "Local",
+                playtime: "00:00:00",
+                profileImage: DEFAULT_PROFILE_IMAGE,
+                claimedRewards: [],
+                ticket: 0,
+                coin: 0,
+                lastUpdatedAt: new Date().toISOString()
+            });
+        } else {
+            await userRef.update({
+                lastUpdatedAt: new Date().toISOString()
+            });
+        }
+
+        const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
+        const refreshToken = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "7d" });
+
+        res.cookie("token", token, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 3600000 });
+        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 7 * 24 * 3600000 });
+        res.json({
+            message: "세션 로그인 완료",
+            playtime: doc.data().playtime || "00:00:00"
+        });
+    } catch (err) {
+        res.status(500).json({ message: "세션 로그인 실패", error: err.message });
+    }
+});
+
+// 인증코드 발송
+app.post("/request-verification", async (req, res) => {
+    const { email } = req.body;
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6자리 숫자
+
+    // Firestore에 저장
+    await db.collection("verifications").doc(email).set({
+        code,
+        createdAt: Date.now()
+    });
+
+    await sendVerificationEmail(email, code);
+    res.json({ message: "인증 코드 발송 완료" });
+});
+
+// 인증코드 확인
+app.post("/verify-code", async (req, res) => {
+    const { email, code } = req.body;
+    const doc = await db.collection("verifications").doc(email).get();
+    const data = doc.data();
+
+    if (!data || Date.now() - data.createdAt > 5 * 60 * 1000) {
+        return res.status(400).json({ message: "코드 만료" });
     }
 
-    data.users.push({
-        name, 
-        email, 
-        password, 
-        profileImage: "/images/User_defaultImg.png",
-        provider: "Local",
-        playtime: "00:00:00",
-        lastUpdatedAt: "",
-        mailbox: JSON.stringify([]),
-        claimedRewards: [],
-        ticket: 0,
-        coin: 0
-    });
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    res.json({ message: "회원가입 성공!" });
+    if (data.code !== code) {
+        return res.status(400).json({ message: "인증 실패" });
+    }
+
+    res.json({ message: "인증 성공" });
 });
 
 
-// 로그인
-app.post("/signin", (req, res) => {
-    const { email, password } = req.body;
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find((u) => u.email === email && u.password === password);
-
-    if (!user) {
-        return res.status(401).json({ message: "이메일 또는 비밀번호가 잘못되었습니다." });
+// 로그인 상태 확인
+app.get("/status", authenticateToken, async (req, res) => {
+    try {
+        const doc = await db.collection("users").doc(req.user.uid).get();
+        if (!doc.exists) return res.status(404).json({ loggedIn: false });
+        const user = doc.data();
+        if (!user.profileImage) user.profileImage = DEFAULT_PROFILE_IMAGE;
+        res.json({ loggedIn: true, user });
+    } catch {
+        res.status(500).json({ loggedIn: false });
     }
-
-    user.lastUpdatedAt = new Date().toISOString();
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-
-    // token 생성
-    const accessToken = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "1h" });
-    const refreshToken = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "7d" });
-
-    // HTTP-Only 쿠키에 JWT 저장
-    res.cookie("token", accessToken, {
-        httpOnly: true,
-        secure: false,              // 배포(HTTPS)시 true
-        sameSite: "lax",            // 대부분 ok
-        maxAge: 3600000,            // 3600000 = 1시간
-    });
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        maxAge: 7 * 24 * 3600000,   // 7*24*3600000 = 7일
-    })
-
-    res.json({ message: "로그인 성공!", user });
 });
 
+// 회원정보 수정 라우터
+app.post("/update-profile", authenticateToken, upload.single("profileImage"), async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const userRef = db.collection("users").doc(uid);
+        const updateData = {};
+
+        const userRecord = await auth.getUser(uid);
+        const providerId = userRecord.providerData[0]?.providerId || "unknown";
+
+        if (req.body.name) updateData.name = req.body.name;
+
+        if (req.body.password) {
+            if (providerId !== "password") {
+                return res.status(400).json({ message: "소셜 로그인 사용자는 비밀번호를 수정할 수 없습니다." });
+            }
+            if (req.body.password.length < 6) {
+                return res.status(400).json({ message: "비밀번호는 최소 6자 이상이어야 합니다." });
+            }
+            await auth.updateUser(uid, { password: req.body.password });
+        }
+
+        if (req.body.resetToDefault === "true") {
+            updateData.profileImage = DEFAULT_PROFILE_IMAGE;
+        }
+
+        if (req.file) {
+            const filename = `profiles/${uid}-${Date.now()}`;
+            const blob = bucket.file(filename);
+            const blobStream = blob.createWriteStream({ metadata: { contentType: req.file.mimetype } });
+            blobStream.end(req.file.buffer);
+
+            await new Promise((resolve, reject) => {
+                blobStream.on("finish", resolve);
+                blobStream.on("error", reject);
+            });
+
+            await blob.makePublic(); // ⬅️ 이미지 공개 처리 추가
+
+            const imageUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+            updateData.profileImage = imageUrl;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+            await userRef.update(updateData);
+        }
+
+        res.json({ message: "회원정보가 성공적으로 수정되었습니다.", profileImage: updateData.profileImage });
+    } catch (err) {
+        console.error("회원정보 수정 실패:", err);
+        res.status(500).json({ message: "회원정보 수정 실패", error: err.message });
+    }
+});
 
 // 로그아웃
 app.post("/signout", authenticateToken, (req, res) => {
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u => u.email === req.user.email);
-
-    if (!user) {
-        return res.status(404).json({ message: "사용자를 찾을 수 없습니다!" });
-    }
-
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-
-    res.clearCookie("token");           // token 삭제
-    res.clearCookie("refreshToken");    // refresh Token 삭제
+    res.clearCookie("token");
+    res.clearCookie("refreshToken");
     res.json({ message: "로그아웃 성공!" });
 });
-
-
-
-// 쿠키 기반 로그인 상태 확인
-app.get("/status", authenticateToken, (req, res) => {
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find((u) => u.email === req.user.email);
-    if(!user) return res.status(404).json({ loggedIn: false });
-    res.json({ 
-        loggedIn: true, 
-        user: {
-            ...user,
-            lastUpdatedAt: user.lastUpdatedAt || new Date().toISOString()
-        }
-    });
-});
-
-
-// 이메일 인증 코드 요청
-app.post("/request-verification", async(req, res)=>{
-    const { email } = req.body;
-    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6자리 코드
-    
-    // 이메일 발송 설정
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
-
-    const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "FearLess 인증코드",
-        text: `인증코드는 ${code} 입니다.`
-    };
-
-    try{
-        await transporter.sendMail(mailOptions);
-        verificationCodes[email] = code;
-        setTimeout(() => delete verificationCodes[email], 5*60*1000); // 5분후 만료
-        res.json({ message: "인증코드 전송됨..." });
-    } catch(err) {
-        res.status(500).json({ message: "이메일 전송 실패!" });
-    }
-});
-
-
-// 이메일 인증 코드 확인
-app.post("/verify-code", (req, res)=>{
-    const { email, code } = req.body;
-    if(verificationCodes[email] === code) {
-        return res.json({ success: true });
-    } else {
-        return res.status(400).json({ success: false, message: "인증 코드가 틀렸습니다!" });
-    }
-});
-
-
-// Google 로그인 라우트
-app.get("/auth/google", passport.authenticate("google", {
-    scope: ["profile", "email"]
-}));
-
-app.get("/google/callback", passport.authenticate("google", {
-    failureRedirect: "/login"
-}), (req, res) => {
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u => u.email === req.user.email);
-
-    if (user) {
-        user.lastUpdatedAt = new Date().toISOString(); 
-        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    }
-
-    // JWT 생성
-    const accessToken = jwt.sign({ email: req.user.email }, SECRET_KEY, { expiresIn: "1h" });
-    const refreshToken = jwt.sign({ email: req.user.email }, SECRET_KEY, { expiresIn: "7d" });
-
-    res.cookie("token", accessToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        maxAge: 3600000
-    });
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        maxAge: 7 * 24 * 3600000
-    });
-
-    res.redirect("http://localhost:5173");  // 클라이언트 홈페이지 리디렉션
-});
-
-
-// 회원정보 수정
-app.post("/update-profile", authenticateToken, upload.single("profileImage"), (req, res) => {
-    const { name, password } = req.body;
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u=>u.email === req.user.email);
-
-    if(!user) {
-        return res.status(404).json({ message: "사용자를 찾을 수 없습니다!" });
-    }
-
-    // 이전 이미지 백업
-    const previousImage = user.profileImage;
-
-    // 업데이트
-    if(name) user.name = name;
-    if(password) user.password = password;
-    if(req.file) {
-        user.profileImage = "/images/" + req.file.filename;    // 새 이미지 경로 저장
-
-        // 이전 이미지 삭제 (기본 이미지는 예외처리)
-        if(previousImage && !previousImage.includes("User_defaultImg.png")) {
-            const previousPath = path.join(__dirname, "public", previousImage);
-            if(fs.existsSync(previousPath)) fs.unlinkSync(previousPath);
-        }
-    }
-
-    // 클라이언트에서 기본 이미지로 변경 요청한 경우
-    if(!req.file && req.body.resetToDefault === "true") {
-        // 기존 이미지 삭제(기본 이미지 제외)
-        if(previousImage && !previousImage.includes("User_defaultImg.png")) {
-            const previousPath = path.join(__dirname, "public", previousImage);
-            if(fs.existsSync(previousPath)) fs.unlinkSync(previousPath);
-        }
-        user.profileImage = "/images/User_defaultImg.png";
-    }
-
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    res.json({ message: "회원정보가 성공적으로 수정되었습니다!" });
-});
-
-
-// 회원탈퇴
-app.post("/delete-account", authenticateToken, (req, res) => {
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u => u.email === req.user.email);
-
-    if (!user) {
-        return res.status(404).json({ message: "사용자를 찾을 수 없습니다!!" });
-    }
-
-    // 기본 이미지가 아닌 경우에만 삭제
-    if (user.profileImage && !user.profileImage.includes("User_defaultImg.png")) {
-        const imagePath = path.join(__dirname, "public", user.profileImage);
-        if (fs.existsSync(imagePath)) {
-            fs.unlinkSync(imagePath);
-        }
-    }
-
-    // 삭제된 사용자 이메일 저장 (Google 로그인 사용자만)
-    if (user.provider === "Google" && user.email) {
-        data.deletedUsers = data.deletedUsers || [];
-        if (!data.deletedUsers.includes(user.email)) {
-            data.deletedUsers.push(user.email);
-        }
-    }
-
-    // 유저 제거
-    const updatedUsers = data.users.filter(u => u.email !== req.user.email);
-    data.users = updatedUsers;
-
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-
-    res.clearCookie("token");
-    res.json({ message: "회원탈퇴가 완료되었습니다.." });
-});
-
-
-// 토큰 잔여시간 API
-app.get("/token-info", (req, res) => {
-    const token = req.cookies.token;
-    if(!token) return res.json({ loggedIn: false });
-
-    try {
-        const payload = jwt.decode(token);              // 서명 검증 X, payload만 추출
-        res.json({ loggedIn: true, exp: payload.exp }); // exp = UNIX timestamp (초단위)
-    } catch (err) {
-        res.status(400).json({ loggedIn: false });
-    }
-});
-
 
 // 토큰 갱신
 app.post("/refresh-token", (req, res) => {
     const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-        return res.status(401).json({ message: "Refresh token이 없습니다." });
-    }
-
+    if (!refreshToken) return res.status(401).json({ message: "Refresh token 없음" });
     jwt.verify(refreshToken, SECRET_KEY, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ message: "Refresh token이 유효하지 않습니다." });
-        }
-
-        const email = decoded.email;
-
-        // 유저 존재 여부 검증
-        const data = JSON.parse(fs.readFileSync(USERS_FILE));
-        const user = data.users.find(u => u.email === email);
-        if (!user) {
-            return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
-        }
-
-        // 새 access token 생성
-        const newAccessToken = jwt.sign({ email }, SECRET_KEY, { expiresIn: "1h" });
-
-        // 쿠키로 다시 저장
-        res.cookie("token", newAccessToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 3600000 // 1시간
-        });
-
+        if (err) return res.status(403).json({ message: "Refresh token 유효하지 않음" });
+        const newAccessToken = jwt.sign({ email: decoded.email, uid: decoded.uid }, SECRET_KEY, { expiresIn: "1h" });
+        res.cookie("token", newAccessToken, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 3600000 });
         res.json({ message: "Access token 갱신 완료" });
     });
 });
 
-
-// 사용자 우편함 불러오기
-app.get("/mailbox", authenticateToken, (req, res) => {
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u => u.email === req.user.email);
-
-    if(!user) return res.status(404).json({message: "사용자 없음"});
-
-    const mailbox = JSON.parse(user.mailbox || "[]");
-    res.json({ mailbox });
-});
-
-
-// 사용자 우편 추가
-app.post("/mailbox", authenticateToken, (req, res) => {
-    const { title, content } = req.body;
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u => u.email === req.user.email);
-
-    if (!user) return res.status(404).json({ message: "사용자 없음" });
-
-    // 티켓/골드 직접 지급 대상
-    const ticketTitles = ["웹 상점 티켓권 X 1", "웹 상점 티켓권 X 3"];
-    const coinTitles = ["골드 X 5,000", "골드 X 10,000"];
-
-    user.claimedRewards = user.claimedRewards || []; // 필드 없으면 생성
-
-    if (ticketTitles.includes(title)) {
-        // 이미 수령한 경우
-        if (user.claimedRewards.includes(title)) {
-            return res.status(400).json({ message: "이미 수령한 보상입니다!" });
-        }
-
-        const count = parseInt(title.split("X")[1].trim());
-        user.ticket = (user.ticket || 0) + count;
-
-        user.claimedRewards.push(title); // 수령 기록
-        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-        return res.json({ message: `티켓 ${count}개 지급 완료` });
-    }
-
-    if (coinTitles.includes(title)) {
-        if (user.claimedRewards.includes(title)) {
-            return res.status(400).json({ message: "이미 수령한 보상입니다!" });
-        }
-
-        const count = parseInt(title.split("X")[1].replace(",", "").trim());
-        user.coin = (user.coin || 0) + count;
-
-        user.claimedRewards.push(title); // 수령 기록
-        fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-        return res.json({ message: `골드 ${count.toLocaleString()} 지급 완료` });
-    }
-
-    // 기본: mailbox에 저장
-    const mailbox = JSON.parse(user.mailbox || "[]");
-    const alreadyClaimed = mailbox.some(mail => mail.title === title);
-    if (alreadyClaimed) {
-        return res.status(400).json({ message: "이미 수령한 보상입니다!" });
-    }
-
-    const itemsData = JSON.parse(fs.readFileSync(ITEMS_PATH, "utf-8"));
-    const matchedEvent = (itemsData.events || []).find(e => e.title === title);
-    const count = matchedEvent?.count || 1;
-
-    mailbox.push({
-        title,
-        content,
-        source: "이벤트",
-        count,
-        date: new Date().toISOString()
-    });
-
-    user.mailbox = JSON.stringify(mailbox);
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    res.json({ message: "보상 수령 완료" });
-});
-
-
-// 아이템 반환
-app.get("/items", authenticateToken, (req, res) => {
+// 사용자 탈퇴 + Firestore 및 Auth 삭제
+app.post("/delete-account", authenticateToken, async (req, res) => {
     try {
-        const itemsData = JSON.parse(fs.readFileSync(ITEMS_PATH, "utf-8"));
-        res.json(itemsData);
-    } catch (err){
-        console.error("items.json 로딩실패: ", err);
-        res.status(500).json({message: "카드 데이터를 불러오지 못했습니다."});
+        const { uid, email } = req.user;
+
+        // 1. 서브컬렉션 mailbox 전부 삭제
+        const mailboxRef = db.collection("users").doc(uid).collection("mailbox");
+        const mailboxSnapshot = await mailboxRef.get();
+        const batch = db.batch();
+        mailboxSnapshot.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+
+        // 2. 사용자 문서 삭제
+        await db.collection("users").doc(uid).delete();
+
+        // 3. 삭제 기록 저장
+        await db.collection("deletedUsers").doc(uid).set({
+            email,
+            deletedAt: new Date().toISOString()
+        });
+
+        // 4. 인증 계정 삭제
+        await auth.deleteUser(uid);
+
+        // 5. 쿠키 제거
+        res.clearCookie("token");
+        res.clearCookie("refreshToken");
+
+        res.json({ message: "계정 삭제 완료" });
+    } catch (err) {
+        res.status(500).json({ message: "계정 삭제 실패", error: err.message });
+    }
+});
+
+// 아이템 조회 (Firestore 기반)
+app.get("/items", async (req, res) => {
+    try {
+        const [eventsSnap, webSnap, gameSnap] = await Promise.all([
+            db.collection("items").doc("events").get(),
+            db.collection("items").doc("web").get(),
+            db.collection("items").doc("game").get()
+        ]);
+
+        res.json({
+            events: eventsSnap.exists ? eventsSnap.data().data || [] : [],
+            webItems: webSnap.exists ? webSnap.data().data || [] : [],
+            gameItems: gameSnap.exists ? gameSnap.data().data || [] : []
+        });
+    } catch (err) {
+        res.status(500).json({ message: "아이템 불러오기 실패", error: err.message });
     }
 });
 
 
-// 티켓/코인으로 상점 아이템 구매
-app.post("/purchase", authenticateToken, (req, res) => {
-    const { item, type } = req.body; 
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u => u.email === req.user.email);
-
-    if (!user) return res.status(404).json({ message: "사용자 없음" });
-
-    // 차감 확인
-    if (type === "web") {
-        if (user.ticket < item.cost) {
-            return res.status(400).json({ message: "티켓이 부족합니다." });
-        }
-        user.ticket -= item.cost;
-    } else if (type === "game") {
-        if (user.coin < item.cost) {
-            return res.status(400).json({ message: "골드가 부족합니다." });
-        }
-        user.coin -= item.cost;
+// 우편함 조회
+app.get("/mailbox", authenticateToken, async (req, res) => {
+    try {
+        const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").get();
+        const mailbox = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.json({ mailbox });
+    } catch (err) {
+        res.status(500).json({ message: "우편함 로드 실패", error: err.message });
     }
+});
 
-    // 우편함에 저장
-    const mailbox = JSON.parse(user.mailbox || "[]");
-    mailbox.push({
+// 우편함 추가
+app.post("/mailbox", authenticateToken, async (req, res) => {
+    const { title, content, count = 1 } = req.body;
+
+    const isGold = title.includes("골드") || title.toLowerCase().includes("coin");
+    const isTicket = title.includes("티켓") || title.toLowerCase().includes("ticket");
+
+    try {
+        const userRef = db.collection("users").doc(req.user.uid);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+
+        if (isGold || isTicket) {
+            const updateData = {};
+            if (isGold) updateData.coin = (userData.coin || 0) + count;
+            if (isTicket) updateData.ticket = (userData.ticket || 0) + count;
+
+            // 수령한 보상 목록에 추가
+            const claimed = new Set(userData.claimedRewards || []);
+            claimed.add(title);
+            updateData.claimedRewards = Array.from(claimed);
+
+            await userRef.update(updateData);
+
+            return res.json({ message: `${isGold ? "골드" : "티켓"}가 프로필에 직접 추가되었습니다.` });
+        }
+
+        // 일반 아이템은 우편함에 저장
+        const mailId = uuidv4();
+        const mailData = {
+            title,
+            content,
+            source: "이벤트",
+            count,
+            date: new Date().toISOString()
+        };
+
+        await userRef.collection("mailbox").doc(mailId).set(mailData);
+        res.json({ message: "우편함으로 보상 전송 완료" });
+    } catch (err) {
+        res.status(500).json({ message: "보상 수령 실패", error: err.message });
+    }
+});
+
+// 상점 아이템 구매
+app.post("/purchase", authenticateToken, async (req, res) => {
+    const { item, type } = req.body;
+    try {
+        const userRef = db.collection("users").doc(req.user.uid);
+        const userSnap = await userRef.get();
+        if (!userSnap.exists) return res.status(404).json({ message: "사용자 없음" });
+        const userData = userSnap.data();
+        const cost = item.cost;
+        if (type === "web" && userData.ticket < cost) return res.status(400).json({ message: "티켓이 부족합니다." });
+        if (type === "game" && userData.coin < cost) return res.status(400).json({ message: "골드가 부족합니다." });
+        const updateData = {};
+        if (type === "web") updateData.ticket = userData.ticket - cost;
+        if (type === "game") updateData.coin = userData.coin - cost;
+        await userRef.update(updateData);
+        const mail = {
         title: item.title,
         content: `${type === "web" ? "웹상점" : "게임상점"}에서 구매한 아이템입니다.`,
         source: type === "web" ? "웹상점" : "게임상점",
         count: item.count,
         date: new Date().toISOString()
-    });
-
-    user.mailbox = JSON.stringify(mailbox);
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-
-    return res.json({ message: "구매 완료" });
+        };
+        await userRef.collection("mailbox").add(mail);
+        res.json({ message: "구매 완료" });
+    } catch (err) {
+        res.status(500).json({ message: "구매 실패", error: err.message });
+    }
 });
-
 
 // 플레이타임 저장
-app.post("/save-playtime", authenticateToken, (req, res) => {
-    const {playtime} = req.body;
-    const data = JSON.parse(fs.readFileSync(USERS_FILE));
-    const user = data.users.find(u => u.email === req.user.email);
-
-    if(!user) return res.status(404).json({message: "사용자 없음"});
-
-    user.playtime = playtime;
-    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
-    res.json({message: "플레이타임 저장 완료.."});
+app.post("/save-playtime", authenticateToken, async (req, res) => {
+    const { playtime } = req.body;
+    try {
+        await db.collection("users").doc(req.user.uid).update({ playtime });
+        res.json({ message: "플레이타임 저장 완료" });
+    } catch (err) {
+        res.status(500).json({ message: "플레이타임 저장 실패", error: err.message });
+    }
 });
 
+// 서버 Ping 측정
+app.post("/update-last-activity", authenticateToken, async (req, res) => {
+    try {
+        await db.collection("users").doc(req.user.uid).update({
+            lastUpdatedAt: new Date().toISOString(),
+            playtime: req.body.playtime  // ✅ 함께 저장
+        });
+        res.json({ message: "활동 시간 갱신 완료" });
+    } catch (err) {
+        res.status(500).json({ message: "갱신 실패", error: err.message });
+    }
+});
 
+// 서버 시작
 app.listen(PORT, () => {
-    console.log(`서버 실행 중: http://localhost:${PORT}`);
+    console.log(`[${new Date().toISOString()}] 🚀 서버 실행 중: http://localhost:${PORT}`);
 });
