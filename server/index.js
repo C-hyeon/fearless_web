@@ -34,14 +34,42 @@ function authenticateToken(req, res, next) {
     });
 }
 
+// 숫자(초) 자체 저장 함수
+function calculateUpdatedPlaytime(oldSeconds, lastUpdatedAt) {
+    if (typeof oldSeconds !== "number" || !lastUpdatedAt) {
+        return oldSeconds || 0;
+    }
+
+    const last = new Date(lastUpdatedAt);
+    const now = new Date();
+    const elapsed = Math.max(0, Math.floor((now - last) / 1000));
+
+    console.log("[🧮 계산] lastUpdatedAt:", last.toISOString());
+    console.log("[🧮 계산] now:", now.toISOString());
+    console.log("[🧮 계산] 경과:", elapsed, "초");
+
+    return oldSeconds + elapsed;
+}
+
+
+// 00:00:00 형식으로 변환 함수
+function formatSeconds(seconds) {
+    const hrs = String(Math.floor(seconds / 3600)).padStart(2, "0");
+    const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+    const secs = String(seconds % 60).padStart(2, "0");
+    return `${hrs}:${mins}:${secs}`;
+}
+
+
 // Google OAuth 로그인
 app.post("/oauth/google", async (req, res) => {
     const { uid, email, name } = req.body;
+
     try {
         const userRef = db.collection("users").doc(uid);
         const doc = await userRef.get();
 
-        let playtime = "00:00:00"; // 기본값
+        let playtimeInSeconds = 0;
         const now = new Date().toISOString();
 
         if (!doc.exists) {
@@ -50,24 +78,29 @@ app.post("/oauth/google", async (req, res) => {
                 name,
                 email,
                 provider: "Google",
-                playtime: null,
+                playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 claimedRewards: [],
                 ticket: 0,
                 coin: 0,
                 lastUpdatedAt: now
-            });
+            }, {merge: true});
         } else {
             const data = doc.data();
 
-            // 기존 유저: playtime 필드가 있으면 그대로 사용
-            if (data && data.playtime) {
-                playtime = data.playtime;
-            }
+            // ✅ 보호 조건 추가
+            if (typeof data.playtime === "number" && data.lastUpdatedAt) {
+                const last = new Date(data.lastUpdatedAt);
+                const nowDate = new Date(); // 현재 시각
+                const elapsed = Math.floor((nowDate - last) / 1000); // 경과 시간 (초)
 
-            await userRef.update({
-                lastUpdatedAt: now
-            });
+                playtimeInSeconds = data.playtime;
+
+                await userRef.update({ playtime: playtimeInSeconds, lastUpdatedAt: nowDate.toISOString() });
+            } else {
+                playtimeInSeconds = data.playtime ?? 0;
+                await userRef.update({ lastUpdatedAt: new Date().toISOString() });
+            }
         }
 
         const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
@@ -76,14 +109,12 @@ app.post("/oauth/google", async (req, res) => {
         res.cookie("token", token, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 3600000 });
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 7 * 24 * 3600000 });
 
-        res.json({
-            message: "Google 로그인 완료",
-            playtime
-        });
+        res.json({ message: "Google 로그인 완료", playtime: formatSeconds(playtimeInSeconds) });
     } catch (err) {
         res.status(500).json({ message: "Google OAuth 실패", error: err.message });
     }
 });
+
 
 // 클라이언트 Firebase 로그인 후 세션 토큰 발급
 app.post("/sessionLogin", async (req, res) => {
@@ -93,7 +124,7 @@ app.post("/sessionLogin", async (req, res) => {
         const userRef = db.collection("users").doc(uid);
         const doc = await userRef.get();
 
-        let playtime = "00:00:00"; // 기본값
+        let playtimeInSeconds = 0;
         const now = new Date().toISOString();
 
         if (!doc.exists) {
@@ -102,24 +133,29 @@ app.post("/sessionLogin", async (req, res) => {
                 name: "로컬회원",
                 email,
                 provider: "Local",
-                playtime: null, // null로 저장하여 이후 계산에 유리
+                playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 claimedRewards: [],
                 ticket: 0,
                 coin: 0,
                 lastUpdatedAt: now
-            });
+            }, {merge: true});
         } else {
             const data = doc.data();
 
-            // playtime 필드가 존재하면 그걸 사용, 없으면 00:00:00
-            if (data && data.playtime) {
-                playtime = data.playtime;
-            }
+            // ✅ 보호 조건 추가
+            if (typeof data.playtime === "number" && data.lastUpdatedAt) {
+                const last = new Date(data.lastUpdatedAt);
+                const nowDate = new Date(); // 현재 시각
+                const elapsed = Math.floor((nowDate - last) / 1000); // 경과 시간 (초)
 
-            await userRef.update({
-                lastUpdatedAt: now
-            });
+                playtimeInSeconds = data.playtime;
+
+                await userRef.update({ playtime: playtimeInSeconds, lastUpdatedAt: nowDate.toISOString() });
+            } else {
+                playtimeInSeconds = data.playtime ?? 0;
+                await userRef.update({ lastUpdatedAt: new Date().toISOString() });
+            }
         }
 
         const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
@@ -128,14 +164,12 @@ app.post("/sessionLogin", async (req, res) => {
         res.cookie("token", token, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 3600000 });
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 7 * 24 * 3600000 });
 
-        res.json({
-            message: "세션 로그인 완료",
-            playtime
-        });
+        res.json({ message: "세션 로그인 완료", playtime: formatSeconds(playtimeInSeconds) });
     } catch (err) {
         res.status(500).json({ message: "세션 로그인 실패", error: err.message });
     }
 });
+
 
 // 인증코드 발송
 app.post("/request-verification", async (req, res) => {
@@ -151,6 +185,7 @@ app.post("/request-verification", async (req, res) => {
     await sendVerificationEmail(email, code);
     res.json({ message: "인증 코드 발송 완료" });
 });
+
 
 // 인증코드 확인
 app.post("/verify-code", async (req, res) => {
@@ -182,6 +217,7 @@ app.get("/status", authenticateToken, async (req, res) => {
         res.status(500).json({ loggedIn: false });
     }
 });
+
 
 // 회원정보 수정 라우터
 app.post("/update-profile", authenticateToken, upload.single("profileImage"), async (req, res) => {
@@ -265,12 +301,14 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
     }
 });
 
+
 // 로그아웃
 app.post("/signout", authenticateToken, (req, res) => {
     res.clearCookie("token");
     res.clearCookie("refreshToken");
     res.json({ message: "로그아웃 성공!" });
 });
+
 
 // 토큰 갱신
 app.post("/refresh-token", (req, res) => {
@@ -283,6 +321,7 @@ app.post("/refresh-token", (req, res) => {
         res.json({ message: "Access token 갱신 완료" });
     });
 });
+
 
 // 사용자 탈퇴 + Firestore 및 Auth 삭제
 app.post("/delete-account", authenticateToken, async (req, res) => {
@@ -318,6 +357,7 @@ app.post("/delete-account", authenticateToken, async (req, res) => {
     }
 });
 
+
 // 아이템 조회 (Firestore 기반)
 app.get("/items", async (req, res) => {
     try {
@@ -348,6 +388,7 @@ app.get("/mailbox", authenticateToken, async (req, res) => {
         res.status(500).json({ message: "우편함 로드 실패", error: err.message });
     }
 });
+
 
 // 우편함 추가
 app.post("/mailbox", authenticateToken, async (req, res) => {
@@ -393,6 +434,7 @@ app.post("/mailbox", authenticateToken, async (req, res) => {
     }
 });
 
+
 // 상점 아이템 구매
 app.post("/purchase", authenticateToken, async (req, res) => {
     const { item, type } = req.body;
@@ -422,29 +464,53 @@ app.post("/purchase", authenticateToken, async (req, res) => {
     }
 });
 
+
 // 플레이타임 저장
 app.post("/save-playtime", authenticateToken, async (req, res) => {
-    const { playtime } = req.body;
+    const { playtimeInSeconds } = req.body;
+
+    if (typeof playtimeInSeconds !== "number" || playtimeInSeconds < 0) {
+        return res.status(400).json({ message: "유효하지 않은 playtime 형식입니다." });
+    }
+
     try {
-        await db.collection("users").doc(req.user.uid).update({ playtime });
+        await db.collection("users").doc(req.user.uid).update({playtime: playtimeInSeconds});
+
         res.json({ message: "플레이타임 저장 완료" });
     } catch (err) {
         res.status(500).json({ message: "플레이타임 저장 실패", error: err.message });
     }
 });
 
-// 서버 Ping 측정
+
+
+// 세션 유지용 ping 측정
 app.post("/update-last-activity", authenticateToken, async (req, res) => {
     try {
-        await db.collection("users").doc(req.user.uid).update({
-            lastUpdatedAt: new Date().toISOString(),
-            playtime: req.body.playtime  // ✅ 함께 저장
-        });
+        const { playtimeInSeconds } = req.body;
+
+        if (typeof playtimeInSeconds !== "number" || playtimeInSeconds < 0) {
+            return res.status(400).json({ message: "playtimeInSeconds는 유효한 숫자여야 합니다." });
+        }
+
+        const userRef = db.collection("users").doc(req.user.uid);
+        const snapshot = await userRef.get();
+        const data = snapshot.data();
+
+        const storedPlaytime = typeof data.playtime === "number" ? data.playtime : 0;
+
+        const newPlaytime = Math.max(playtimeInSeconds, storedPlaytime); // 🔒 보존
+
+        await userRef.update({playtime: newPlaytime, lastUpdatedAt: new Date().toISOString()});
+
+        console.log(`[UPDATE] 저장된: ${storedPlaytime}, 받은: ${playtimeInSeconds}, 최종: ${newPlaytime}`);
+
         res.json({ message: "활동 시간 갱신 완료" });
     } catch (err) {
         res.status(500).json({ message: "갱신 실패", error: err.message });
     }
 });
+
 
 // 서버 시작
 app.listen(PORT, () => {
