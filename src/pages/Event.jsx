@@ -1,4 +1,3 @@
-// 중복된 import 제거
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "../styles/Event.scss";

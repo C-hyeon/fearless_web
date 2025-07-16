@@ -18,11 +18,10 @@ import {
 import Modal from "./Modal";
 import Profile from "../pages/Profile";
 import "../styles/Header.scss";
-import { formatSeconds } from "../utils/formatTime";
 import { usePlaytime } from "../utils/PlaytimeContext";
 
 const Header = () => {
-    const { currentPlaytime } = usePlaytime();
+    const { currentPlaytime, stopTimer } = usePlaytime();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showSignup, setShowSignup] = useState(false);
     const [signupForm, setSignupForm] = useState({
@@ -95,14 +94,15 @@ const Header = () => {
                 signinForm.email,
                 signinForm.password
             );
-            const idToken = await userCredential.user.getIdToken();
 
             const res = await axios.post("http://localhost:5000/sessionLogin", {
                 uid: userCredential.user.uid,
                 email: signinForm.email,
             }, { withCredentials: true });
 
-            localStorage.setItem("initialPlaytime", res.data.playtime); 
+            await axios.post("http://localhost:5000/update-last-activity", {
+                playtimeInSeconds: currentPlaytime
+            }, { withCredentials: true });
 
             alert("로그인 완료!");
             setUsers({ email: signinForm.email });
@@ -126,8 +126,9 @@ const Header = () => {
                 name: user.displayName,
             }, { withCredentials: true });
 
-            localStorage.setItem("initialPlaytime", res.data.playtime); // ✅ 저장
-
+            await axios.post("http://localhost:5000/update-last-activity", {
+                playtimeInSeconds: currentPlaytime
+            }, { withCredentials: true });
 
             alert("Google 로그인 완료");
             window.location.reload();
@@ -153,25 +154,21 @@ const Header = () => {
         if (!confirmSignout) return;
 
         try {
-        await axios.post(
-            "http://localhost:5000/save-playtime",
-            { playtime: formatSeconds(currentPlaytime) },
-            { withCredentials: true }
-        );
+            stopTimer();
 
-        const res = await axios.post(
-            "http://localhost:5000/signout",
-            {},
-            { withCredentials: true }
-        );
-        document.cookie =
-            "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        alert(res.data.message);
-        setUsers(null);
-        setShowProfile(false);
-        window.location.reload();
+            await axios.post(
+                "http://localhost:5000/save-playtime", { playtimeInSeconds: currentPlaytime }, { withCredentials: true }
+            );
+            const res = await axios.post(
+                "http://localhost:5000/signout", {}, { withCredentials: true }
+            );
+            document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            alert(res.data.message);
+            setUsers(null);
+            setShowProfile(false);
+            window.location.reload();
         } catch {
-        alert("로그아웃 실패!");
+            alert("로그아웃 실패!");
         }
     };
 

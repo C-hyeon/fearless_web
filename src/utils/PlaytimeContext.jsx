@@ -5,6 +5,7 @@ import { parseTimeString, formatSeconds } from "./formatTime";
 const PlaytimeContext = createContext();
 
 export const PlaytimeProvider = ({ children }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPlaytime, setCurrentPlaytime] = useState(0);
   const [loading, setLoading] = useState(true);
   const timerRef = useRef(null);
@@ -25,7 +26,7 @@ export const PlaytimeProvider = ({ children }) => {
 
     try {
       await axios.post("http://localhost:5000/save-playtime", {
-        playtime: formatSeconds(currentPlaytime),
+        playtimeInSeconds: currentPlaytime
       }, { withCredentials: true });
     } catch (e) {
       console.error("플레이타임 저장 실패:", e);
@@ -56,13 +57,13 @@ export const PlaytimeProvider = ({ children }) => {
 
         if (!res.data.loggedIn) {
           stopTimer();
+          setIsLoggedIn(false);
           console.log("⛔ 로그아웃 상태 확인됨 → 타이머 정지");
           return;
         }
+        setIsLoggedIn(true);
 
-        const playtimeString = res.data.user.playtime ?? "00:00:00";
-
-        const initialSeconds = parseTimeString(playtimeString);
+        const initialSeconds = typeof res.data.user.playtime === "number" ? res.data.user.playtime : 0;
         const lastUpdatedAt = new Date(res.data.user.lastUpdatedAt || new Date());
         const now = new Date();
         const elapsedSeconds = Math.max(0, Math.floor((now - lastUpdatedAt) / 1000));
@@ -71,9 +72,11 @@ export const PlaytimeProvider = ({ children }) => {
         setCurrentPlaytime(total);
 
         stopTimer();
-        timerRef.current = setInterval(() => {
-          setCurrentPlaytime((prev) => prev + 1);
-        }, 1000);
+        if (res.data.loggedIn) {
+          timerRef.current = setInterval(() => {
+            setCurrentPlaytime((prev) => prev + 1);
+          }, 1000);
+        }
       } catch (err) {
         console.error("Playtime 초기화 실패", err);
         stopTimer();
@@ -105,8 +108,9 @@ export const PlaytimeProvider = ({ children }) => {
           });
 
           if (res.data.loggedIn) {
-            const playtimeString = res.data.user.playtime || "00:00:00";
-            const initialSeconds = parseTimeString(playtimeString);
+            const playtimeRaw = res.data.user.playtime;
+            const initialSeconds = typeof playtimeRaw === "number" ? playtimeRaw : 0;
+
             const lastUpdatedAt = new Date(res.data.user.lastUpdatedAt || new Date());
             const now = new Date();
             const elapsedSeconds = Math.max(0, Math.floor((now - lastUpdatedAt) / 1000));
@@ -135,14 +139,13 @@ export const PlaytimeProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || currentPlaytime === 0 || !isLoggedIn) return;
 
     const interval = setInterval(() => {
       axios.post("http://localhost:5000/update-last-activity", {
-        playtime: formatSeconds(currentPlaytime)
-      }, {
-        withCredentials: true
-      }).then(() => {
+        playtimeInSeconds: currentPlaytime
+      }, {withCredentials: true})
+      .then(() => {
         console.log("🕒 lastUpdatedAt & playtime 갱신됨");
       }).catch((err) => {
         console.error("갱신 실패", err);
@@ -152,23 +155,10 @@ export const PlaytimeProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [loading, currentPlaytime]);
 
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const blob = new Blob([JSON.stringify({
-        playtime: formatSeconds(currentPlaytime)
-      })], { type: 'application/json' });
-
-      navigator.sendBeacon("http://localhost:5000/update-last-activity", blob);
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [currentPlaytime]);
-
   if (loading) return null;
 
   return (
-    <PlaytimeContext.Provider value={{ currentPlaytime, setCurrentPlaytime }}>
+    <PlaytimeContext.Provider value={{ currentPlaytime, setCurrentPlaytime, stopTimer }}>
       {children}
     </PlaytimeContext.Provider>
   );
