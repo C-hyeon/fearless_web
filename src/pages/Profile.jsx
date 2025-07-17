@@ -25,13 +25,10 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
             formData.append("password", updateProfile.password);
         }
 
-        // 기본 이미지로 복구 요청
+        // 이미지 관련 처리 (reset vs upload 중 하나만)
         if (resetToDefault) {
             formData.append("resetToDefault", "true");
-        }
-
-        // 새 이미지가 있을 경우 업로드
-        if (updateProfile.profileImage instanceof File) {
+        } else if (updateProfile.profileImage instanceof File) {
             formData.append("profileImage", updateProfile.profileImage);
         }
 
