@@ -15,14 +15,14 @@ const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.SECRET_KEY;
 const isProduction = process.env.NODE_ENV === "production";
 
-const DEFAULT_PROFILE_IMAGE = process.env.DEFAULT_IMAGE;
+const DEFAULT_PROFILE_IMAGE = process.env.DEFAULT_PROFILE_IMAGE;
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({ storage: storage });
 
 function authenticateToken(req, res, next) {
     const token = req.cookies.token;
@@ -225,14 +225,13 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
         const uid = req.user.uid;
         const userRef = db.collection("users").doc(uid);
         const updateData = {};
-
         const userRecord = await auth.getUser(uid);
         const providerId = userRecord.providerData[0]?.providerId || "unknown";
 
-        // 이름 변경
+        // 🔹 이름 수정
         if (req.body.name) updateData.name = req.body.name;
 
-        // 비밀번호 변경 (로컬 사용자만)
+        // 🔹 비밀번호 수정 (로컬 사용자만)
         if (req.body.password) {
             if (providerId !== "password") {
                 return res.status(400).json({ message: "소셜 로그인 사용자는 비밀번호를 수정할 수 없습니다." });
@@ -243,56 +242,82 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
             await auth.updateUser(uid, { password: req.body.password });
         }
 
-        // 기본 이미지로 초기화 요청
+        // 🔹 기본 이미지로 변경 요청
         if (req.body.resetToDefault === "true") {
-            updateData.profileImage = DEFAULT_PROFILE_IMAGE;
-        }
-
-        // 프로필 이미지 업로드 처리
-        if (req.file) {
-            try {
-                if (!req.file.buffer || !req.file.mimetype.startsWith("image/")) {
-                    return res.status(400).json({ message: "유효한 이미지가 아닙니다." });
-                }
-
-                const filename = `profiles/${uid}-${Date.now()}`;
-                const token = uuidv4();
-                const blob = bucket.file(filename);
-
-                const blobStream = blob.createWriteStream({
-                    metadata: {
-                        contentType: req.file.mimetype,
-                        metadata: {
-                            firebaseStorageDownloadTokens: token
-                        }
-                    }
-                });
-
-                blobStream.end(req.file.buffer);
-
-                await new Promise((resolve, reject) => {
-                    blobStream.on("finish", resolve);
-                    blobStream.on("error", reject);
-                });
-
-                const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media&token=${token}`;
-                updateData.profileImage = imageUrl;
-
-            } catch (uploadErr) {
-                console.error("이미지 업로드 실패:", uploadErr);
-                return res.status(500).json({ message: "이미지 업로드 실패", error: uploadErr.message });
+            const defaultImage = process.env.DEFAULT_PROFILE_IMAGE;
+            if (!defaultImage) {
+                return res.status(500).json({ message: "기본 프로필 이미지가 설정되지 않았습니다." });
             }
+
+            // ✅ 이전 이미지 삭제
+            const userSnapshot = await userRef.get();
+            const previousImage = userSnapshot.data()?.profileImage;
+            if (
+                previousImage &&
+                previousImage.includes("firebasestorage.googleapis.com") &&
+                !previousImage.includes("User_defaultImg.png")
+            ) {
+                const match = previousImage.match(/\/o\/(.*?)\?/);
+                if (match && match[1]) {
+                    const oldPath = decodeURIComponent(match[1]);
+                    await bucket.file(oldPath).delete().catch((e) => {
+                        console.warn("[⚠️ 이미지 삭제 실패]", oldPath, e.message);
+                    });
+                }
+            }
+            updateData.profileImage = defaultImage;
+
+        } else if (req.file && req.file.buffer && req.file.mimetype.startsWith("image/")) {
+            // 🔹 이전 이미지 삭제 (선택적으로 추가 가능)
+            const userSnapshot = await userRef.get();
+            const previousImage = userSnapshot.data()?.profileImage;
+            if (
+                previousImage &&
+                previousImage.includes("firebasestorage.googleapis.com") &&
+                !previousImage.includes("User_defaultImg.png")
+            ) {
+                const match = previousImage.match(/\/o\/(.*?)\?/);
+                if (match && match[1]) {
+                    const oldPath = decodeURIComponent(match[1]);
+                    await bucket.file(oldPath).delete().catch((e) => {
+                        console.warn("[⚠️ 이미지 삭제 실패]", oldPath, e.message);
+                    });
+                }
+            }
+
+            // 🔹 새 이미지 업로드
+            const filename = `profiles/${uid}-${Date.now()}.png`;
+            const token = uuidv4();
+            const blob = bucket.file(filename);
+
+            const blobStream = blob.createWriteStream({
+                metadata: {
+                    contentType: req.file.mimetype,
+                    metadata: {
+                        firebaseStorageDownloadTokens: token
+                    }
+                }
+            });
+
+            blobStream.end(req.file.buffer);
+
+            await new Promise((resolve, reject) => {
+                blobStream.on("finish", resolve);
+                blobStream.on("error", reject);
+            });
+
+            const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media&token=${token}`;
+            updateData.profileImage = imageUrl;
         }
 
-
-        // 업데이트 실행
+        // 🔹 Firestore 업데이트
         if (Object.keys(updateData).length > 0) {
             await userRef.update(updateData);
         }
 
         res.json({
             message: "회원정보가 성공적으로 수정되었습니다.",
-            profileImage: updateData.profileImage // 클라이언트에서 즉시 반영용
+            profileImage: updateData.profileImage
         });
 
     } catch (err) {

@@ -3,11 +3,13 @@ const serviceAccount = require("./serviceAccountKey.json"); // Firebase 서비�
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "fearless-3e591.appspot.com" // 실제 버킷 주소로 변경
 });
 
-const db = admin.firestore();
-const auth = admin.auth();
-const bucket = admin.storage().bucket();
+const bucket = admin.storage().bucket("fearless-3e591.firebasestorage.app"); 
 
-module.exports = { db, auth, bucket };
+module.exports = {
+  admin,
+  db: admin.firestore(),
+  auth: admin.auth(),
+  bucket,
+};
