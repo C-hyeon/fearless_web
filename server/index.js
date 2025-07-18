@@ -116,9 +116,22 @@ app.post("/oauth/google", async (req, res) => {
 });
 
 
+// 로컬 회원가입 시 이름/닉네임 + 이메일 중복확인
+app.get("/check-name", async (req, res) => {
+    const { name } = req.query;
+    const snapshot = await db.collection("users").where("name", "==", name).get();
+    res.json({ available: snapshot.empty });
+});
+app.get("/check-email", async (req, res) => {
+    const { email } = req.query;
+    const snapshot = await db.collection("users").where("email", "==", email).get();
+    res.json({ available: snapshot.empty });
+});
+
+
 // 클라이언트 Firebase 로그인 후 세션 토큰 발급
 app.post("/sessionLogin", async (req, res) => {
-    const { uid, email } = req.body;
+    const { uid, email, name } = req.body;
 
     try {
         const userRef = db.collection("users").doc(uid);
@@ -130,7 +143,7 @@ app.post("/sessionLogin", async (req, res) => {
         if (!doc.exists) {
             // 신규 가입자
             await userRef.set({
-                name: "로컬회원",
+                name: name,
                 email,
                 provider: "Local",
                 playtime: playtimeInSeconds,
