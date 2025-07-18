@@ -8,12 +8,7 @@ import { CiMail } from "react-icons/ci";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { auth } from "../firebase";
-import {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    GoogleAuthProvider,
-    signInWithPopup,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 import Modal from "./Modal";
 import Profile from "../pages/Profile";
@@ -24,6 +19,12 @@ const Header = () => {
     const { currentPlaytime, stopTimer } = usePlaytime();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showSignup, setShowSignup] = useState(false);
+    const [validationState, setValidationState] = useState({
+        nameChecked: false,
+        emailChecked: false,
+        passwordChecked: false
+    });
+    const [passwordStrength, setPasswordStrength] = useState("");   // weak - medium - strong
     const [signupForm, setSignupForm] = useState({
         name: "",
         email: "",
@@ -36,10 +37,10 @@ const Header = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [showMailbox, setShowMailbox] = useState(false);
     const [mailbox, setMailbox] = useState([]);
-
     const hasPromptedRef = useRef(false);
 
     const handleOpen = () => setIsModalOpen(true);
+
     const handleClose = () => {
         setIsModalOpen(false);
         setShowSignup(false);
@@ -47,46 +48,139 @@ const Header = () => {
         setShowMailbox(false);
     };
 
-    const handleSignupChange = (e) =>
-        setSignupForm({ ...signupForm, [e.target.name]: e.target.value });
+    const handleSignupChange = (e) => {
+        const { name, value } = e.target;
 
-    const handleSigninChange = (e) =>
-        setSigninForm({ ...signinForm, [e.target.name]: e.target.value });
+        setSignupForm(prev => ({ ...prev, [name]: value }));
 
-    const handleSignupSubmit = async () => {
-        if (!signupForm.verified) {
-        alert("이메일 인증을 완료해주세요!");
-        return;
+        if (name === "password") {
+            evaluatePasswordStrength(value);
+            setValidationState(prev => ({ ...prev, passwordChecked: false }));
         }
+        if (name === "name") setValidationState(prev => ({ ...prev, nameChecked: false }));
+        if (name === "email") setValidationState(prev => ({ ...prev, emailChecked: false }));
+    };
 
+
+    const handleSigninChange = (e) => setSigninForm({ ...signinForm, [e.target.name]: e.target.value });
+
+    // 로컬 회원가입 시 이름/닉네임 중복확인
+    const checkDuplicationName = async () => {
+        if(!signupForm.name.trim()) return alert("이름을 입력해주세요.");
         try {
-        const userCredential = await createUserWithEmailAndPassword(
-            auth,
-            signupForm.email,
-            signupForm.password
-        );
-        const idToken = await userCredential.user.getIdToken();
-
-        await axios.post(
-            "http://localhost:5000/sessionLogin",
-            {
-            uid: userCredential.user.uid,
-            email: signupForm.email,
-            },
-            { withCredentials: true }
-        );
-
-        alert("회원가입 및 로그인 완료!");
-        setUsers({ email: signupForm.email });
-        setIsModalOpen(false);
-        setShowSignup(false);
-        window.location.reload();
-        } catch (err) {
-        console.error(err);
-        alert("회원가입 실패: " + err.message);
+            const res = await axios.get(`http://localhost:5000/check-name?name=${signupForm.name}`);
+            if(res.data.available) {
+                alert("사용할 수 있는 이름입니다!");
+                setValidationState(prev => ({ ...prev, nameChecked: true }));
+            } else {
+                alert("이미 사용 중인 이름입니다!");
+                setValidationState(prev => ({ ...prev, nameChecked: false }));
+            }
+        } catch(err) {
+            alert("확인 중 오류 발생!");
         }
     };
 
+    // 로컬 회원가입 시 이메일 중복확인
+    const checkDuplicateEmail = async () => {
+        if (!signupForm.email.trim()) return alert("이메일을 입력해주세요.");
+        try {
+            const res = await axios.get(`http://localhost:5000/check-email?email=${signupForm.email}`);
+            if (res.data.available) {
+                alert("사용할 수 있는 이메일입니다!");
+                setValidationState(prev => ({ ...prev, emailChecked: true }));
+            } else {
+                alert("이미 사용 중인 이메일입니다!");
+                setValidationState(prev => ({ ...prev, emailChecked: false }));
+            }
+        } catch (err) {
+            alert("확인 중 오류 발생!");
+        }
+    };
+
+    // 로컬 회원가입 시 비밀번호 입력에 따른 실시간 계산
+    const evaluatePasswordStrength = (password) => {
+        let score = 0;
+        if(password.length >= 8) score += 1;
+        if (/[A-Z]/.test(password)) score += 1;
+        if (/[a-z]/.test(password)) score += 1;
+        if (/[0-9]/.test(password)) score += 1;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score += 1;
+
+        if (score === 0) setPasswordStrength("none");
+        else if (score <= 2) setPasswordStrength("weak");
+        else if (score === 3 || score === 4) setPasswordStrength("medium");
+        else if (score === 5) setPasswordStrength("strong");
+    };
+
+    // 로컬 회원가입 시 비밀번호 보안등급 검증(대소문자 + 숫자 + 특수문자)
+    const checkPasswordStrength = () => {
+        const password = signupForm.password;
+        
+        if(password.length < 8) return alert("비밀번호는 최소 8자 이상이어야 합니다!");
+        else if(password.length > 20) return alert("비밀번호는 최대 20자까지 가능합니다!");
+
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        if (!hasUpper) return alert("비밀번호에 대문자가 포함되어야 합니다!");
+        if (!hasLower) return alert("비밀번호에 소문자가 포함되어야 합니다!");
+        if (!hasNumber) return alert("비밀번호에 숫자가 포함되어야 합니다!");
+        if (!hasSpecial) return alert("비밀번호에 특수문자가 포함되어야 합니다!");
+
+        alert("사용 가능한 비밀번호입니다!");
+        setValidationState(prev => ({ ...prev, passwordChecked: true }));
+    };
+
+    // 로컬 회원가입 및 로그인
+    const handleSignupSubmit = async () => {
+        const { nameChecked, emailChecked, passwordChecked } = validationState;
+
+        if (!signupForm.verified) {
+            alert("이메일 인증을 완료해주세요!");
+            return;
+        }
+        if (!nameChecked) {
+            alert("이름 중복 확인을 완료해주세요!");
+            return;
+        }
+        if (!emailChecked) {
+            alert("이메일 중복 확인을 완료해주세요!");
+            return;
+        }
+        if (!passwordChecked) {
+            alert("비밀번호 강도 검사를 완료해주세요!");
+            return;
+        }
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(
+                auth,
+                signupForm.email,
+                signupForm.password
+            );
+
+            await axios.post(
+                "http://localhost:5000/sessionLogin", {
+                uid: userCredential.user.uid,
+                email: signupForm.email,
+                name: signupForm.name
+            }, { withCredentials: true });
+
+            alert("회원가입 및 로그인 완료!");
+            setUsers({ email: signupForm.email });
+            setIsModalOpen(false);
+            setShowSignup(false);
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            alert("회원가입 실패: " + err.message);
+        }
+    };
+
+    // 로컬 로그인
     const handleSigninSubmit = async () => {
         try {
             const userCredential = await signInWithEmailAndPassword(
@@ -114,6 +208,7 @@ const Header = () => {
         }
     };
 
+    // 구글 로그인
     const handleGoogleLogin = async () => {
         try {
             const provider = new GoogleAuthProvider();
@@ -138,17 +233,17 @@ const Header = () => {
         }
     };
 
+    // 로그인 상태확인
     const checkSigninStatus = async () => {
         try {
-        const res = await axios.get("http://localhost:5000/status", {
-            withCredentials: true,
-        });
-        if (res.data.loggedIn) setUsers(res.data.user);
+            const res = await axios.get("http://localhost:5000/status", {withCredentials: true});
+            if (res.data.loggedIn) setUsers(res.data.user);
         } catch {
-        setUsers(null);
+            setUsers(null);
         }
     };
 
+    // 로그아웃
     const handleSignout = async () => {
         const confirmSignout = window.confirm("정말 로그아웃 하시겠습니까?");
         if (!confirmSignout) return;
@@ -196,32 +291,33 @@ const Header = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // 이메일 인증코드 요청
     const requestVerification = async () => {
         try {
-        await axios.post("http://localhost:5000/request-verification", {
-            email: signupForm.email,
-        });
-        alert("인증 코드가 이메일로 전송되었습니다...");
+            await axios.post("http://localhost:5000/request-verification", {email: signupForm.email});
+            alert("인증 코드가 이메일로 전송되었습니다...");
         } catch {
-        alert("이메일 전송 실패!");
+            alert("이메일 전송 실패!");
         }
     };
 
+    // 이메일 인증코드 확인
     const verifyCode = async () => {
         try {
-        const res = await axios.post("http://localhost:5000/verify-code", {
-            email: signupForm.email,
-            code: signupForm.code,
-        });
-        if (res.data.message === "인증 성공") {
-            alert("인증 완료!");
-            setSignupForm({ ...signupForm, verified: true });
-        }
+            const res = await axios.post("http://localhost:5000/verify-code", {
+                email: signupForm.email,
+                code: signupForm.code,
+            });
+            if (res.data.message === "인증 성공") {
+                alert("인증 완료!");
+                setSignupForm({ ...signupForm, verified: true });
+            }
         } catch {
-        alert("인증 실패: 코드가 틀렸습니다!");
+            alert("인증 실패: 코드가 틀렸습니다!");
         }
     };
 
+    // 회원탈퇴
     const handleDeleteAccount = async () => {
         const confirmDelete = window.confirm(
         "정말 회원탈퇴 하시겠습니까? 이전 상태로 되돌릴 수 없습니다!!"
@@ -229,30 +325,28 @@ const Header = () => {
         if (!confirmDelete) return;
 
         try {
-        const res = await axios.post(
-            "http://localhost:5000/delete-account",
-            {},
-            { withCredentials: true }
-        );
-        alert(res.data.message);
-        setUsers(null);
-        setShowProfile(false);
-        window.location.reload();
+            const res = await axios.post(
+                "http://localhost:5000/delete-account",
+                {}, { withCredentials: true }
+            );
+            alert(res.data.message);
+            setUsers(null);
+            setShowProfile(false);
+            window.location.reload();
         } catch {
-        alert("회원탈퇴에 실패했습니다..");
+            alert("회원탈퇴에 실패했습니다..");
         }
     };
 
+    // 우편함 열기
     const handleOpenMailbox = async () => {
         try {
-        const res = await axios.get("http://localhost:5000/mailbox", {
-            withCredentials: true,
-        });
-        setMailbox(res.data.mailbox);
-        setShowMailbox(true);
-        setIsModalOpen(true);
+            const res = await axios.get("http://localhost:5000/mailbox", {withCredentials: true});
+            setMailbox(res.data.mailbox);
+            setShowMailbox(true);
+            setIsModalOpen(true);
         } catch {
-        alert("우편함을 불러오는데 실패하였습니다...");
+            alert("우편함을 불러오는데 실패하였습니다...");
         }
     };
 
@@ -311,7 +405,7 @@ const Header = () => {
                         <>
                             <h1 className="master_logo">FearLess</h1>
                             <h2 className="signin_title">계정 로그인</h2>
-                            <input name="email" type="email" placeholder="이메일" className="signin_input" onChange={handleSigninChange}/>
+                            <input name="email" type="email" placeholder="아이디/이메일" className="signin_input" onChange={handleSigninChange}/>
                             <input name="password" type="password" placeholder="비밀번호" className="signin_input" onChange={handleSigninChange}/>
                             <button className="signin_btn" onClick={handleSigninSubmit}>로그인</button>
                             <button className="google_btn" onClick={handleGoogleLogin}>
@@ -329,12 +423,32 @@ const Header = () => {
                                     transition={{duration: 0.4}}
                                 >
                                     <h2 className="signup_title">계정 회원가입</h2>
-                                    <input name="name" type="text" placeholder="이름" className="signup_input" onChange={handleSignupChange}/>
-                                    <input name="email" type="email" placeholder="이메일" className="signup_input" onChange={handleSignupChange}/>
-                                    <input name="code" type="text" placeholder="인증 코드 입력" className="signup_input" onChange={(e)=>setSignupForm({...signupForm, code: e.target.value})}/>
-                                    <button className="verify_btn" onClick={requestVerification}>인증요청</button>
-                                    <button className="verify_btn" onClick={verifyCode}>코드확인</button>
-                                    <input name="password" type="password" placeholder="비밀번호" className="signup_input" onChange={handleSignupChange}/>
+                                    <div className="signup_input-group">
+                                        <input name="name" type="text" placeholder="이름" className="signup_input" onChange={handleSignupChange} />
+                                        <button className="check_btn" onClick={checkDuplicationName}>✔</button>
+                                    </div>
+                                    <div className="signup_input-group">
+                                        <input name="email" type="email" placeholder="아이디/이메일" className="signup_input" onChange={handleSignupChange}/>
+                                        <button className="check_btn" onClick={checkDuplicateEmail}>✔</button>
+                                    </div>
+                                    <div className="signup_input-group">
+                                        <input name="password" type="password" placeholder="비밀번호" className="signup_input" onChange={handleSignupChange}/>
+                                        <div className="password-strength-bar">
+                                            <div className={`strength-indicator ${passwordStrength}`}>
+                                                {passwordStrength === "none" && "없음"}
+                                                {passwordStrength === "weak" && "약함"}
+                                                {passwordStrength === "medium" && "보통"}
+                                                {passwordStrength === "strong" && "강함"}
+                                            </div>
+                                        </div>
+                                        <button className="check_btn" onClick={checkPasswordStrength}>✔</button>
+                                    </div>
+                                    <div className="signup_input-group">
+                                        <input name="code" type="text" placeholder="인증 코드 입력" className="signup_input" onChange={(e)=>setSignupForm({...signupForm, code: e.target.value})}/>
+                                        <button className="verify_btn" onClick={requestVerification}>인증요청</button>
+                                        <button className="verify_btn" onClick={verifyCode}>코드확인</button>
+                                    </div>
+                                    
                                     <button className="signup_btn" onClick={handleSignupSubmit}>회원가입 완료</button>
                                 </motion.div>
                                 )}

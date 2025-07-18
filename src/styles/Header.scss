@@ -57,6 +57,61 @@
 }
 
 // 회원 로그인/회원가입/프로필 모달창
+.signup_input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+
+    .check_btn {
+        width: 30px;
+        height: 30px;
+        margin-bottom: 1rem;
+        border: 1px solid Nesting.$white;
+        background: transparent;
+        color: #c2c2c2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+
+        &:hover {
+            color: Nesting.$black;
+        }
+    }
+}
+
+.password-strength-bar {
+    margin-top: 0.3rem;
+    margin-bottom: 1rem;
+
+    .strength-indicator {
+        font-size: 0.9rem;
+        font-family: Nesting.$main_font_Light;
+        padding: 0.3rem 1rem;
+        border-radius: 20px;
+        width: fit-content;
+
+        &.none {
+            background-color: #d3d3d3;
+            color: Nesting.$black;
+        }
+        &.weak {
+            background-color: #ffb3b3;
+            color: #900;
+        }
+        &.medium {
+            background-color: #ffe68a;
+            color: #aa8800;
+        }
+        &.strong {
+            background-color: #a2f5a2;
+            color: #006600;
+        }
+    }
+}
+
 .master_logo {
     font-family: Nesting.$main_font_Bold;
     margin-bottom: 0.5rem;
@@ -75,6 +130,7 @@
 .signin_input,
 .signup_input,
 .update_input {
+    flex: 1;
     width: 90%;
     padding: 1rem;
     background: rgb(230, 230, 230);
