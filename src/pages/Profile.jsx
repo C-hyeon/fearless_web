@@ -63,8 +63,12 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
         const isValid = lengthValid && hasUpper && hasLower && hasNumber && hasSpecial;
         setValidationState(prev => ({ ...prev, passwordChecked: isValid }));
 
-        if (showAlert && !isValid) {
-            alert("비밀번호는 8~20자이며 대소문자, 숫자, 특수문자를 포함해야 합니다.");
+        if (showAlert) {
+            if (!isValid) {
+                alert("비밀번호는 8~20자이며 대소문자, 숫자, 특수문자를 포함해야 합니다.");
+            } else {
+                alert("적합한 비밀번호입니다.");
+            }
         }
     };
 
