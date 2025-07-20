@@ -34,23 +34,6 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// 숫자(초) 자체 저장 함수
-function calculateUpdatedPlaytime(oldSeconds, lastUpdatedAt) {
-    if (typeof oldSeconds !== "number" || !lastUpdatedAt) {
-        return oldSeconds || 0;
-    }
-
-    const last = new Date(lastUpdatedAt);
-    const now = new Date();
-    const elapsed = Math.max(0, Math.floor((now - last) / 1000));
-
-    console.log("[🧮 계산] lastUpdatedAt:", last.toISOString());
-    console.log("[🧮 계산] now:", now.toISOString());
-    console.log("[🧮 계산] 경과:", elapsed, "초");
-
-    return oldSeconds + elapsed;
-}
-
 
 // 00:00:00 형식으로 변환 함수
 function formatSeconds(seconds) {
@@ -115,12 +98,25 @@ app.post("/oauth/google", async (req, res) => {
 });
 
 
-// 로컬 회원가입 시 이름/닉네임 + 이메일 중복확인
+// 로컬 회원가입 + 프로필 수정 시 이름/닉네임 중복확인
 app.get("/check-name", async (req, res) => {
     const { name } = req.query;
+    let uid = null;
+
+    try {
+        const token = req.cookies.token;
+        if (token) {
+            const decoded = jwt.verify(token, process.env.SECRET_KEY);
+            uid = decoded.uid;
+        }
+    } catch (e) {}
+
     const snapshot = await db.collection("users").where("name", "==", name).get();
-    res.json({ available: snapshot.empty });
+    const isDuplicate = snapshot.docs.some(doc => doc.id !== uid);
+    res.json({ available: !isDuplicate });
 });
+
+// 로컬 회원가입 시 이메일 중복확인
 app.get("/check-email", async (req, res) => {
     const { email } = req.query;
     const snapshot = await db.collection("users").where("email", "==", email).get();
@@ -247,8 +243,17 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
             if (providerId !== "password") {
                 return res.status(400).json({ message: "소셜 로그인 사용자는 비밀번호를 수정할 수 없습니다." });
             }
-            if (req.body.password.length < 6) {
-                return res.status(400).json({ message: "비밀번호는 최소 6자 이상이어야 합니다." });
+            if (req.body.password.length < 8 || req.body.password.length > 20) {
+                return res.status(400).json({ message: "비밀번호는 8자 이상 20자 이하여야 합니다." });
+            }
+
+            const hasUpper = /[A-Z]/.test(req.body.password);
+            const hasLower = /[a-z]/.test(req.body.password);
+            const hasNumber = /[0-9]/.test(req.body.password);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(req.body.password);
+
+            if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+                return res.status(400).json({ message: "비밀번호는 대문자, 소문자, 숫자, 특수문자를 모두 포함해야 합니다." });
             }
             await auth.updateUser(uid, { password: req.body.password });
         }
@@ -424,7 +429,7 @@ app.get("/mailbox-all", authenticateToken, async (req, res) => {
     }
 });
 
-// 우편함 조회
+// 티켓/코인 제외 우편함 조회
 app.get("/mailbox", authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").get();
@@ -467,10 +472,10 @@ app.post("/mailbox", authenticateToken, async (req, res) => {
             if (type === "coin") updateData.coin = (userData.coin || 0) + count;
             if (type === "ticket") updateData.ticket = (userData.ticket || 0) + count;
             await userRef.update(updateData);
-            return res.json({ message: `${type === "coin" ? "골드" : "티켓"}가 프로필에 추가되었고, 수령 기록도 저장되었습니다.` });
+            return res.json({ message: `${type === "coin" ? "골드" : "티켓"} 보상 수령 완료` });
         }
 
-        res.json({ message: "우편함으로 보상 전송 완료" });
+        res.json({ message: "이벤트 보상 전송 완료" });
     } catch (err) {
         res.status(500).json({ message: "보상 수령 실패", error: err.message });
     }
