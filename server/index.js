@@ -80,7 +80,6 @@ app.post("/oauth/google", async (req, res) => {
                 provider: "Google",
                 playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
-                claimedRewards: [],
                 ticket: 0,
                 coin: 0,
                 lastUpdatedAt: now
@@ -148,7 +147,6 @@ app.post("/sessionLogin", async (req, res) => {
                 provider: "Local",
                 playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
-                claimedRewards: [],
                 ticket: 0,
                 coin: 0,
                 lastUpdatedAt: now
@@ -415,13 +413,24 @@ app.get("/items", async (req, res) => {
     }
 });
 
+// 티켓/코인 포함 우편함 조회
+app.get("/mailbox-all", authenticateToken, async (req, res) => {
+    try {
+        const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").get();
+        const mailbox = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.json({ mailbox });
+    } catch (err) {
+        res.status(500).json({ message: "전체 우편함 로드 실패", error: err.message });
+    }
+});
 
 // 우편함 조회
 app.get("/mailbox", authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").get();
         const mailbox = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        res.json({ mailbox });
+        const filteredMailbox = mailbox.filter(mail => mail.type !== "coin" && mail.type !== "ticket");
+        res.json({ mailbox: filteredMailbox });
     } catch (err) {
         res.status(500).json({ message: "우편함 로드 실패", error: err.message });
     }
@@ -430,42 +439,37 @@ app.get("/mailbox", authenticateToken, async (req, res) => {
 
 // 우편함 추가
 app.post("/mailbox", authenticateToken, async (req, res) => {
-    const { title, content, count = 1 } = req.body;
-
-    const isGold = title.includes("골드") || title.toLowerCase().includes("coin");
-    const isTicket = title.includes("티켓") || title.toLowerCase().includes("ticket");
+    const { title, content, count = 1, type, image, description, time } = req.body;
 
     try {
         const userRef = db.collection("users").doc(req.user.uid);
         const userSnap = await userRef.get();
         const userData = userSnap.data();
 
-        if (isGold || isTicket) {
-            const updateData = {};
-            if (isGold) updateData.coin = (userData.coin || 0) + count;
-            if (isTicket) updateData.ticket = (userData.ticket || 0) + count;
-
-            // 수령한 보상 목록에 추가
-            const claimed = new Set(userData.claimedRewards || []);
-            claimed.add(title);
-            updateData.claimedRewards = Array.from(claimed);
-
-            await userRef.update(updateData);
-
-            return res.json({ message: `${isGold ? "골드" : "티켓"}가 프로필에 직접 추가되었습니다.` });
-        }
-
-        // 일반 아이템은 우편함에 저장
+        // mailbox 기록 (공통 처리)
         const mailId = uuidv4();
         const mailData = {
             title,
             content,
-            source: "이벤트",
             count,
+            type,
+            image,
+            description,
+            time,
+            source: "이벤트",
             date: new Date().toISOString()
         };
-
         await userRef.collection("mailbox").doc(mailId).set(mailData);
+
+        // coin이나 ticket이면 유저 정보도 업데이트
+        if (type === "coin" || type === "ticket") {
+            const updateData = {};
+            if (type === "coin") updateData.coin = (userData.coin || 0) + count;
+            if (type === "ticket") updateData.ticket = (userData.ticket || 0) + count;
+            await userRef.update(updateData);
+            return res.json({ message: `${type === "coin" ? "골드" : "티켓"}가 프로필에 추가되었고, 수령 기록도 저장되었습니다.` });
+        }
+
         res.json({ message: "우편함으로 보상 전송 완료" });
     } catch (err) {
         res.status(500).json({ message: "보상 수령 실패", error: err.message });
