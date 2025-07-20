@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { parseTimeString, formatSeconds } from "./formatTime";
 
 const PlaytimeContext = createContext();
 
@@ -18,23 +17,6 @@ export const PlaytimeProvider = ({ children }) => {
       timerRef.current = null;
       console.log("⏹️ 타이머 중단됨");
     }
-  };
-
-  const handleSessionExpired = async () => {
-    if (sessionExpiredRef.current) return;
-    sessionExpiredRef.current = true;
-
-    try {
-      await axios.post("http://localhost:5000/save-playtime", {
-        playtimeInSeconds: currentPlaytime
-      }, { withCredentials: true });
-    } catch (e) {
-      console.error("플레이타임 저장 실패:", e);
-    }
-
-    stopTimer();
-    alert("세션이 만료되어 로그아웃됩니다.");
-    window.location.href = "/";
   };
 
   const checkAndRefreshToken = async () => {

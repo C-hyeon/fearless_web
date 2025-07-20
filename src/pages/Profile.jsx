@@ -9,23 +9,86 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
         name: user.name,
         password: ""
     });
+    const [validationState, setValidationState] = useState({
+        nameChecked: true,
+        passwordChecked: true
+    });
     const [previewImage, setPreviewImage] = useState(user.profileImage);
     const [resetToDefault, setResetToDefault] = useState(false);
 
     const handleChange = (e) => {
-        setUpdateProfile({ ...updateProfile, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setUpdateProfile(prev => ({ ...prev, [name]: value }));
+
+        if (name === "password") {
+            if (value.trim() === "") {
+                setValidationState(prev => ({ ...prev, passwordChecked: false }));
+            } else {
+                evaluatePasswordStrength(value);
+            }
+        }
+
+        if (name === "name") {
+            setValidationState(prev => ({ ...prev, nameChecked: false }));
+        }
     };
 
+    const checkDuplicateName = async () => {
+        if (!updateProfile.name.trim()) return alert("이름을 입력해주세요.");
+        try {
+            const res = await fetch(`http://localhost:5000/check-name?name=${updateProfile.name}`, {
+                method: "GET",
+                credentials: "include"
+            });
+            const data = await res.json();
+            if (data.available) {
+                alert("사용 가능한 이름입니다.");
+                setValidationState(prev => ({ ...prev, nameChecked: true }));
+            } else {
+                alert("이미 사용 중인 이름입니다.");
+                setValidationState(prev => ({ ...prev, nameChecked: false }));
+            }
+        } catch {
+            alert("중복 확인 실패");
+        }
+    };
+
+    const evaluatePasswordStrength = (password, showAlert = false) => {
+        const lengthValid = password.length >= 8 && password.length <= 20;
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        const isValid = lengthValid && hasUpper && hasLower && hasNumber && hasSpecial;
+        setValidationState(prev => ({ ...prev, passwordChecked: isValid }));
+
+        if (showAlert && !isValid) {
+            alert("비밀번호는 8~20자이며 대소문자, 숫자, 특수문자를 포함해야 합니다.");
+        }
+    };
+
+
     const handleUpdate = async () => {
+        if (!validationState.nameChecked) {
+            alert("이름 중복 검사를 완료해주세요.");
+            return;
+        }
+
+        if (user.provider === "Local" && updateProfile.password && !validationState.passwordChecked) {
+            alert("비밀번호 보안 조건을 만족해야 합니다.");
+            return;
+        }
+
         const formData = new FormData();
         formData.append("name", updateProfile.name);
 
-        // 비밀번호는 로컬 사용자만 전송
-        if (user.provider === "Local" && updateProfile.password) {
+        const isPasswordChanged = user.provider === "Local" && updateProfile.password;
+
+        if (isPasswordChanged) {
             formData.append("password", updateProfile.password);
         }
 
-        // 이미지 관련 처리 (reset vs upload 중 하나만)
         if (resetToDefault) {
             formData.append("resetToDefault", "true");
         } else if (updateProfile.profileImage instanceof File) {
@@ -38,8 +101,17 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 credentials: "include",
                 body: formData
             });
+
             const data = await res.json();
             alert(data.message);
+
+            // 비밀번호 변경한 경우 자동 로그아웃 → 로그인 페이지로 이동
+            if (isPasswordChanged) {
+                alert("비밀번호가 변경되어 다시 로그인해야 합니다.");
+                onSignout();
+                return;
+            }
+
             setShowUpdateProfile(false);
             window.location.reload();
         } catch (err) {
@@ -132,38 +204,22 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                 기본이미지 변경
                             </button>
 
-                            <input
-                                name="name"
-                                type="text"
-                                placeholder="이름"
-                                value={updateProfile.name}
-                                onChange={handleChange}
-                                className="update_input"
-                            />
-
-                            <input
-                                type="email"
-                                value={user.email}
-                                readOnly
-                                className="update_input blurred"
-                            />
-
-                            <input
-                                type="text"
-                                value={user.provider}
-                                readOnly
-                                className="update_input blurred"
-                            />
+                            <div className="update_input-group">
+                                <input name="name" type="text" placeholder="이름" value={updateProfile.name} onChange={handleChange} className="update_input"/>
+                                <button className="check_btn" onClick={checkDuplicateName}>✔</button>
+                            </div>
+                            <div className="update_input-group">
+                                <input type="email" value={user.email} readOnly className="update_input blurred"/>
+                            </div>
+                            <div className="update_input-group">
+                                <input type="text" value={user.provider} readOnly className="update_input blurred"/>
+                            </div>
 
                             {user.provider === "Local" && (
-                                <input
-                                    name="password"
-                                    type="password"
-                                    placeholder="새 비밀번호"
-                                    value={updateProfile.password}
-                                    onChange={handleChange}
-                                    className="update_input"
-                                />
+                                <div className="update_input-group">
+                                    <input name="password" type="password" placeholder="새 비밀번호" value={updateProfile.password} onChange={handleChange} className="update_input"/>
+                                    <button className="check_btn" onClick={() => evaluatePasswordStrength(updateProfile.password, true)}>✔</button>
+                                </div>
                             )}
 
                             <button className="update_btn" onClick={handleUpdate}>수정하기</button>

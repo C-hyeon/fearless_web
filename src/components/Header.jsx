@@ -405,7 +405,7 @@ const Header = () => {
                         <>
                             <h1 className="master_logo">FearLess</h1>
                             <h2 className="signin_title">계정 로그인</h2>
-                            <input name="email" type="email" placeholder="아이디/이메일" className="signin_input" onChange={handleSigninChange}/>
+                            <input name="email" type="email" placeholder="아이디 / 이메일" className="signin_input" onChange={handleSigninChange}/>
                             <input name="password" type="password" placeholder="비밀번호" className="signin_input" onChange={handleSigninChange}/>
                             <button className="signin_btn" onClick={handleSigninSubmit}>로그인</button>
                             <button className="google_btn" onClick={handleGoogleLogin}>
@@ -424,15 +424,15 @@ const Header = () => {
                                 >
                                     <h2 className="signup_title">계정 회원가입</h2>
                                     <div className="signup_input-group">
-                                        <input name="name" type="text" placeholder="이름" className="signup_input" onChange={handleSignupChange} />
+                                        <input name="name" type="text" placeholder="이름 / 별명" className="signup_input" onChange={handleSignupChange} />
                                         <button className="check_btn" onClick={checkDuplicationName}>✔</button>
                                     </div>
                                     <div className="signup_input-group">
-                                        <input name="email" type="email" placeholder="아이디/이메일" className="signup_input" onChange={handleSignupChange}/>
+                                        <input name="email" type="email" placeholder="아이디 / 이메일" className="signup_input" onChange={handleSignupChange}/>
                                         <button className="check_btn" onClick={checkDuplicateEmail}>✔</button>
                                     </div>
                                     <div className="signup_input-group">
-                                        <input name="password" type="password" placeholder="비밀번호" className="signup_input" onChange={handleSignupChange}/>
+                                        <input name="password" type="password" placeholder="비밀번호(대소문자+숫자+특수문자 포함 8자 이상)" className="signup_input" onChange={handleSignupChange}/>
                                         <div className="password-strength-bar">
                                             <div className={`strength-indicator ${passwordStrength}`}>
                                                 {passwordStrength === "none" && "없음"}

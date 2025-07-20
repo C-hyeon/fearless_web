@@ -57,7 +57,8 @@
 }
 
 // 회원 로그인/회원가입/프로필 모달창
-.signup_input-group {
+.signup_input-group,
+.update_input-group {
     display: flex;
     align-items: center;
     gap: 0.5rem;
