@@ -546,11 +546,9 @@ app.post("/update-last-activity", authenticateToken, async (req, res) => {
 
         const storedPlaytime = typeof data.playtime === "number" ? data.playtime : 0;
 
-        const newPlaytime = Math.max(playtimeInSeconds, storedPlaytime); // 🔒 보존
+        const newPlaytime = Math.max(playtimeInSeconds, storedPlaytime); 
 
         await userRef.update({playtime: newPlaytime, lastUpdatedAt: new Date().toISOString()});
-
-        console.log(`[UPDATE] 저장된: ${storedPlaytime}, 받은: ${playtimeInSeconds}, 최종: ${newPlaytime}`);
 
         res.json({ message: "활동 시간 갱신 완료" });
     } catch (err) {
