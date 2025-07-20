@@ -41,14 +41,12 @@ const Event = () => {
                 );
                 setUnlockTimes(times);
 
-                const mailboxRes = await axios.get("http://localhost:5000/mailbox", {
+                const mailboxRes = await axios.get("http://localhost:5000/mailbox-all", {
                     withCredentials: true
                 });
                 const mailboxTitles = mailboxRes.data.mailbox.map(mail => mail.title);
 
-                const claimedRewards = statusRes.data.user.claimedRewards || [];
-
-                setClaimedTitles([...mailboxTitles, ...claimedRewards]);
+                setClaimedTitles(mailboxTitles);
 
             } catch (err) {
                 alert("로그인이 필요합니다.");
@@ -101,7 +99,11 @@ const Event = () => {
             const res = await axios.post("http://localhost:5000/mailbox", {
                 title: event.title,
                 content: event.description,
-                count: event.count || 1
+                count: event.count || 1,
+                type: event.type,
+                image: event.image,
+                description: event.description,
+                time: event.time
             }, { withCredentials: true });
 
             alert(res.data.message);
