@@ -7,7 +7,7 @@
 
 > - [Zenless Zone Zero](https://zenless.hoyoverse.com/ko-kr/main) 공식 홈페이지 및 게임 스타일 벤치마킹
 
-> - React + SCSS + Node.js(Express) + MySQL / JWT + Cookie + OAuth2.0
+> - React + SCSS + Node.js(Express) + Firebase / JWT + Cookie + OAuth2.0
 
 > - **웹사이트 기능 설계**
 >> 1. JWT + Cookie + OAuth2.0 활용 로컬 사용자 및 구글 인증 시스템 구현
@@ -142,12 +142,60 @@
 >>> 3) Event 페이지 목록 중 나머지 아이템들은 우편함 전송으로 유지
 >>> 4) Store 페이지 목록 중 구매한 모든 아이템들은 우편함 전송으로 설정
 
-> - **Firebase** 데이터베이스 연동으로 모든 서버 라우팅 수정 및 기타 오류 수정 (진행중)
-
 ### **9주차** (7/14 ~ 7/20)
-> - 웹사이트 상 Unity 게임 다운로드 기능 구현
+> - **Firebase** React + Node.js(Express) 연동 및 서버 라우터 전체 리팩토링
+>> 1. **(SERVER)** *npm install firebase-admin*
+>> 2. 서버 쪽 serviceAccountKey.json 발급 및 firebase.js 환경 설정
+>> 3. Firebase 연동 시 Google OAuth 2.0 기본 내장이므로 사용되지 않는 모듈 삭제 진행 *npm uninstall passport passport-google-oauth20*
+>> 4. **(CLIENT)** *npm install firebase*
+>> 5. 클라이언트 쪽 firebase.js 환경 설정 
+>> 6. Firestore Database + Authentication + Storage 설정
+>>> 1) Database **items / users / verifications etc** 생성 및 이전의 JSON 파일 값 데이터베이스로 이동
+>>> 2) Authentication **Local / Google** 사용 설정 및 Google-OAuth 2.0 Client ID 값 확인
+>>> 3) Storage **items / profiles / stages / weapons** 이미지 저장 및 *커스텀 버킷* 확인
+>> 7. 서버쪽 index.js 코드 리팩토링 진행
+>>> 1) Local + Google 로그인 및 회원가입 / 로그인 상태확인 / 회원정보수정 / 로그아웃 / 회원탈퇴 라우터 수정
+>>> 2) Local 회원가입 시 이메일 인증 코드 발송 및 확인 라우터 수정
+>>> 3) 일반 Token 및 갱신 Token 발급 / Token 자동 갱신 라우터 수정
+>>> 4) 아이템 조회 및 구매 / 우편함 조회 및 추가 라우터 수정
+>>> 5) 플레이타임 측정 및 저장 / 서버 Ping 측정 라우터 수정
+>> 8. 플레이타임 저장 형식 **"00:00:00"(String) → 0(초)(Number)** 변경 및 관련된 라우터 수정
+
+> - 회원가입 / 회원정보수정 시 특수 기능 추가 구현
+>> 1. 회원가입 시 **이름 / 이메일** 중복 확인 + **비밀번호 보안조건(대소문자+숫자+특수문자 포함 8~20자)** 확인 기능 설정
+>>> 1) 이름 / 이메일 중복 확인같은 경우 서버쪽 *check-name / check-email* 라우터 설정 후 클라이언트에서 요청 받도록 설계
+>>> 2) 비밀번호 보안조건 같은 경우 클라이언트쪽에서 함수 설계\
+>>> 3) **비밀번호 길이: 8~20자 / 대문자: A-Z / 소문자: a-z / 숫자: 0-9 / 특수문자: !@#$%^&*(),.?":{}|<>** 모두 만족하도록 설정
+>>> 4) 중복 확인 및 보안조건 확인 후에만 회원가입이 가능하도록 조건 설정
+>> 2. 회원정보수정 시 **이름** 중복 확인 + **비밀번호 보안조건(대소문자+숫자+특수문자 포함 8~20자)***(Local만 해당)* 확인 기능 설정
+>>> 1) 이름 중복 확인같은 경우 서버쪽 *check-name* 라우터에서 분기 설정 후 cookie 속 Token 보유시에 수정할 수 있도록 설정
+>>> 2) 비밀번호 보안조건 같은 경우 클라이언트쪽과 서버쪽 *update-profile* 라우터 모두 설정하여 UI/UX 개편(보안조건의 경우 회원가입 시와 동일))
+>>> 3) 중복 확인 및 보안조건 확인 후에만 회원정보수정이 가능하도록 조건 설정
+>>> 4) 비밀번호 수정 시 Firebase 특성상 기존 Token은 즉시 만료가 되므로, 자동 로그아웃 되도록 처리
 
 ### **10주차** (7/21 ~ )
+> - 서버 index.js 파일 **모듈화** 및 **디렉토리 구조**로 분리
+>> 1. routes 폴더 : *auth.js / user.js / mail.js / item.js / playtime.js*
+>>> 1) **auth.js** : 로그인, 세션, 토큰, 인증 **(/oauth/google, /sessionLogin, /status, /signout, /refresh-token)**
+>>> 2) **user.js** : 회원정보 수정, 이름/이메일 체크, 회원탈퇴 **(/check-name, /check-email, /update-profile, /delete-account)**
+>>> 3) **mail.js** : 우편함 관련 **(/request-verification, /verify-code, /mailbox, /mailbox-all)**
+>>> 4) **item.js** : 아이템 조회, 상점 구매 **(/items, /purchase)**
+>>> 5) **playtime.js** : 플레이타임 관련 **(/save-playtime, /update-last-activity)**
+>> 2. utiles 폴더 : *formatSeconds.js / authenticate.js / upload.js*
+>>> 1) **formatSeconds.js** : 00:00:00 포맷 변환 함수
+>>> 2) **authenticate.js** : JWT 인증 미들웨어
+>>> 3) **upload.js** : multer 업로드 설정
+>> 3. 상단 : *mailer.js / firebase.js / serviceAccountKey.json / index.js*
+>>> 1) **mailer.js** : 이메일 인증 발송 유틸
+>>> 2) **firebase.js** : Firebase 초기화 (db / auth / bucket)
+>>> 3) **serviceAccountKey.json** : Firebase 서비스 계정 키 (.gitignore 처리)
+>>> 4) **index.js** : 앱 시작점, 모든 라우터 등록
+
+> - Main 페이지 상단 **자동 이미지 슬라이더 UI**로 변경
+>> 1. Firebase Storage의 stages 폴더에 저장된 5개 스테이지 이미지 URL 확인
+>> 2. Main 페이지 코드에 해당 URL 배열로 저장 및 import
+>> 3. Framer-motion 모듈과 useEffect Hook 활용 5초마다 해당 이미지들이 순서대로 나타나게 설정
+
 > - 오류 수정 및 추가 기능 개발 설계 및 마무리
 -----
 ## Unity Game
