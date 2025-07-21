@@ -45,11 +45,11 @@
 
         .right-panel {
             flex: 90%;
-            background-image: url('../images/Main_image1.png');
             background-size: cover;
             background-position: center;
             clip-path: polygon(100% 0%, 100% 100%, 10% 100%, 0% 0%);
             z-index: 1;
+            transition: background-image 1s ease-in-out;
         }
 
         .diagonal-line {
