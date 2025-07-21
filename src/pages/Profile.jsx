@@ -209,7 +209,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                             </button>
 
                             <div className="update_input-group">
-                                <input name="name" type="text" placeholder="이름" value={updateProfile.name} onChange={handleChange} className="update_input"/>
+                                <input name="name" type="text" placeholder="이름 / 별명" value={updateProfile.name} onChange={handleChange} className="update_input"/>
                                 <button className="check_btn" onClick={checkDuplicateName}>✔</button>
                             </div>
                             <div className="update_input-group">
@@ -221,7 +221,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
 
                             {user.provider === "Local" && (
                                 <div className="update_input-group">
-                                    <input name="password" type="password" placeholder="새 비밀번호" value={updateProfile.password} onChange={handleChange} className="update_input"/>
+                                    <input name="password" type="password" placeholder="새 비밀번호(대소문자+숫자+특수문자 포함 8자 이상)" value={updateProfile.password} onChange={handleChange} className="update_input"/>
                                     <button className="check_btn" onClick={() => evaluatePasswordStrength(updateProfile.password, true)}>✔</button>
                                 </div>
                             )}
