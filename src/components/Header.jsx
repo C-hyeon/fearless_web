@@ -70,7 +70,7 @@ const Header = () => {
         try {
             const res = await axios.get(`http://localhost:5000/check-name?name=${signupForm.name}`);
             if(res.data.available) {
-                alert("사용할 수 있는 이름입니다!");
+                alert("사용할 수 있는 이름입니다!!");
                 setValidationState(prev => ({ ...prev, nameChecked: true }));
             } else {
                 alert("이미 사용 중인 이름입니다!");
