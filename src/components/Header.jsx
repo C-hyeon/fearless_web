@@ -380,11 +380,11 @@ const Header = () => {
                                 <table className="mailbox-table">
                                 <thead>
                                     <tr>
-                                    <th>#</th>
-                                    <th>출처</th>
-                                    <th>이름</th>
-                                    <th>수량</th>
-                                    <th>날짜</th>
+                                        <th>#</th>
+                                        <th>출처</th>
+                                        <th>이름</th>
+                                        <th>수량</th>
+                                        <th>날짜</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -415,42 +415,42 @@ const Header = () => {
                             <button className="signup_btn" onClick={()=>setShowSignup(prev => !prev)}>회원가입</button>
                             <AnimatePresence>
                                 {showSignup && (
-                                <motion.div
-                                    className="signup_form"
-                                    initial={{opacity: 0, height: 0}}
-                                    animate={{opacity: 1, height: "auto"}}
-                                    exit={{opacity: 0, height: 0}}
-                                    transition={{duration: 0.4}}
-                                >
-                                    <h2 className="signup_title">계정 회원가입</h2>
-                                    <div className="signup_input-group">
-                                        <input name="name" type="text" placeholder="이름 / 별명" className="signup_input" onChange={handleSignupChange} />
-                                        <button className="check_btn" onClick={checkDuplicationName}>✔</button>
-                                    </div>
-                                    <div className="signup_input-group">
-                                        <input name="email" type="email" placeholder="아이디 / 이메일" className="signup_input" onChange={handleSignupChange}/>
-                                        <button className="check_btn" onClick={checkDuplicateEmail}>✔</button>
-                                    </div>
-                                    <div className="signup_input-group">
-                                        <input name="password" type="password" placeholder="비밀번호(대소문자+숫자+특수문자 포함 8자 이상)" className="signup_input" onChange={handleSignupChange}/>
-                                        <div className="password-strength-bar">
-                                            <div className={`strength-indicator ${passwordStrength}`}>
-                                                {passwordStrength === "none" && "없음"}
-                                                {passwordStrength === "weak" && "약함"}
-                                                {passwordStrength === "medium" && "보통"}
-                                                {passwordStrength === "strong" && "강함"}
-                                            </div>
+                                    <motion.div
+                                        className="signup_form"
+                                        initial={{opacity: 0, height: 0}}
+                                        animate={{opacity: 1, height: "auto"}}
+                                        exit={{opacity: 0, height: 0}}
+                                        transition={{duration: 0.4}}
+                                    >
+                                        <h2 className="signup_title">계정 회원가입</h2>
+                                        <div className="signup_input-group">
+                                            <input name="name" type="text" placeholder="이름 / 별명" className="signup_input" onChange={handleSignupChange} />
+                                            <button className="check_btn" onClick={checkDuplicationName}>✔</button>
                                         </div>
-                                        <button className="check_btn" onClick={checkPasswordStrength}>✔</button>
-                                    </div>
-                                    <div className="signup_input-group">
-                                        <input name="code" type="text" placeholder="인증 코드 입력" className="signup_input" onChange={(e)=>setSignupForm({...signupForm, code: e.target.value})}/>
-                                        <button className="verify_btn" onClick={requestVerification}>인증요청</button>
-                                        <button className="verify_btn" onClick={verifyCode}>코드확인</button>
-                                    </div>
-                                    
-                                    <button className="signup_btn" onClick={handleSignupSubmit}>회원가입 완료</button>
-                                </motion.div>
+                                        <div className="signup_input-group">
+                                            <input name="email" type="email" placeholder="아이디 / 이메일" className="signup_input" onChange={handleSignupChange}/>
+                                            <button className="check_btn" onClick={checkDuplicateEmail}>✔</button>
+                                        </div>
+                                        <div className="signup_input-group">
+                                            <input name="password" type="password" placeholder="비밀번호(대소문자+숫자+특수문자 포함 8자 이상)" className="signup_input" onChange={handleSignupChange}/>
+                                            <div className="password-strength-bar">
+                                                <div className={`strength-indicator ${passwordStrength}`}>
+                                                    {passwordStrength === "none" && "없음"}
+                                                    {passwordStrength === "weak" && "약함"}
+                                                    {passwordStrength === "medium" && "보통"}
+                                                    {passwordStrength === "strong" && "강함"}
+                                                </div>
+                                            </div>
+                                            <button className="check_btn" onClick={checkPasswordStrength}>✔</button>
+                                        </div>
+                                        <div className="signup_input-group">
+                                            <input name="code" type="text" placeholder="인증 코드 입력" className="signup_input" onChange={(e)=>setSignupForm({...signupForm, code: e.target.value})}/>
+                                            <button className="verify_btn" onClick={requestVerification}>인증요청</button>
+                                            <button className="verify_btn" onClick={verifyCode}>코드확인</button>
+                                        </div>
+                                        
+                                        <button className="signup_btn" onClick={handleSignupSubmit}>회원가입 완료</button>
+                                    </motion.div>
                                 )}
                             </AnimatePresence>
                         </>
