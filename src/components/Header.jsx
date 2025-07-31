@@ -273,18 +273,18 @@ const Header = () => {
 
     useEffect(() => {
         const checkTokenExpiration = async () => {
-        if (hasPromptedRef.current) return;
+            if (hasPromptedRef.current) return;
 
-        try {
-            await axios.post(
-            "http://localhost:5000/refresh-token",
-            {},
-            { withCredentials: true }
-            );
-            console.log("세션 자동 연장됨");
-        } catch (err) {
-            console.error("세션 연장 실패:", err);
-        }
+            try {
+                await axios.post(
+                "http://localhost:5000/refresh-token",
+                {},
+                { withCredentials: true }
+                );
+                console.log("세션 자동 연장됨");
+            } catch (err) {
+                console.error("세션 연장 실패:", err);
+            }
         };
 
         const interval = setInterval(checkTokenExpiration, 60 * 1000);
