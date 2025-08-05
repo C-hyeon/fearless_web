@@ -432,7 +432,7 @@ const Header = () => {
                                             <button className="check_btn" onClick={checkDuplicateEmail}>✔</button>
                                         </div>
                                         <div className="signup_input-group">
-                                            <input name="password" type="password" placeholder="비밀번호(대소문자+숫자+특수문자 포함 8자 이상)" className="signup_input" onChange={handleSignupChange}/>
+                                            <input name="password" type="password" placeholder="비밀번호 (대소문자+숫자+특수문자 포함 8자 이상)" className="signup_input" onChange={handleSignupChange}/>
                                             <div className="password-strength-bar">
                                                 <div className={`strength-indicator ${passwordStrength}`}>
                                                     {passwordStrength === "none" && "없음"}
