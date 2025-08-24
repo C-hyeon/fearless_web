@@ -1,0 +1,106 @@
+{
+    "story" : [
+        {
+            "name" : "스토리 씬 이름(string)",
+            "lines" : [
+                "첫번째 대화창(string)", 
+                "두번째 대화창(string)", 
+                "세번째 대화창(string)"
+            ]
+        }
+    ],
+    "items" : [
+        {
+            "document" : "events",
+            "data" : [
+                {
+                    "count" : "아이템 수량(number)",
+                    "description" : "카드당 이벤트 설명(string)",
+                    "image" : "아이템 이미지 URL(string, Cloud Storage URL)",
+                    "time" : "각 구간당 플레이타임(string, 00:00:00)",
+                    "title" : "카드당 이벤트 제목(string)",
+                    "type" : "카드 종류(string, ticket/coin/parts)"
+                }
+            ]
+        },
+        {
+            "document" : "game",
+            "data" : [
+                {
+                    "cost" : "아이템 구매 비용(number)",
+                    "count" : "아이템 수량(number)",
+                    "image" : "아이템 이미지 URL(string, Cloud Storage URL)",
+                    "title" : "카드당 아이템 제목(string)",
+                    "type" : "카드 종류(string, game)"
+                }
+            ]
+        },
+        {
+            "document" : "web",
+            "data" : [
+                {
+                    "cost" : "아이템 구매 비용(number)",
+                    "count" : "아이템 수량(number)",
+                    "image" : "아이템 이미지 URL(string, Cloud Storage URL)",
+                    "title" : "카드당 아이템 제목(string)",
+                    "type" : "카드 종류(string, game)"
+                }
+            ]
+        }
+    ],
+    "users" : [
+        {
+            "email" : "사용자 이메일(string)",
+            "items" : {
+                "currency_credit" : "골드량(number)",
+                "part_ElectricBattery" : "충격 배터리 수량(number)",
+                "part_EnergyBattery" : "에너지 전지 수량(number)",
+                "part_Fuel" : "화염 연료 수량(number)",
+                "part_IceCartridge" : "냉각 카트리지 수량(number)",
+                "part_RoketMagazine" : "미사일 탄창 수량(number)",
+                "part_rare_scrap" : "고급 고철 부품 수량(number)",
+                "part_scrap" : "고철 부품 수량(number)",
+                "part_token_stnr9" : "스턴건 돌파 토큰 수량(number)",
+                "part_token_lb7" : "레이저 빔 돌파 토큰 수량(number)",
+                "part_token_igfx" : "화염 방사기 돌파 토큰 수량(number)",
+                "part_token_hx09" : "냉기 분사기 돌파 토큰 수량(number)",
+                "part_token_rex" : "로켓 런처 돌파 토큰 수량(number)"
+            },
+            "ticket" : "웹 상점용 티켓(number)",
+            "lastUpdatedAt" : "최종 갱신 시각(string, serverTimestamp)",
+            "name" : "사용자 이름(string)",
+            "playtime" : "게임 누적 플레이타임(초)(number)",
+            "profileImage" : "프로필 이미지 URL(string, Cloud Storage URL)",
+            "provider" : "계정 유형(string, Local/Google)",
+            "weapons" : [
+                {
+                    "breakthroughLevel" : "보유 무기 돌파 단계(number)", 
+                    "enhanceLevel" : "보유 무기 강화 단계(number)", 
+                    "weaponId" : "보유 무기 고유 식별자(string)"
+                }
+            ],
+            "latest_scene" : [
+                {"name" : "최근 컷신 이름(string)"}
+            ],
+            "storyProgress" : [
+                {"name" : "스토리 진행도(string)"}
+            ],
+            "mailbox" : [
+                {
+                    "id" : "우편함 고유 ID(number)",
+                    "isClaimed" : "우편함 수령여부(boolean, true/false)",
+                    "claimItems" : [
+                        {
+                            "itemID" : "수령한 아이템 고유 ID(string)", 
+                            "count" : "수령한 아이템 수량(number)"
+                        }
+                    ],
+                    "message" : "우편함 메시지 내용(string)",
+                    "timestamp" : "우편함 발송 시간(number)",
+                    "title" : "우편함 제목(string)"
+                }
+            ]
+        }
+    ]
+}
+
