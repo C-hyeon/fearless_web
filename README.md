@@ -1,248 +1,62 @@
-# FearLess [전공연구소모임 & 외부학술대회 연계]
+# 피어리스 [전공연구소모임 & 한국디지털콘텐츠학회 추계종합학술대회]
 
-## 『 Planning - FRONTEND & BACKEND 』
+## Function
+- Frontend: React / Backend: Node.js
+> **React**의 경우 .jsx 기반의 **Vite** 프론트엔드 개발 도구 사용(추후 **.tsx** 전환 예정)
+>> **React-Hook**의 **useState**, **useEffect**, **useRef**, **useContext** 활용 데이터 상태관리
+>> **React-Router**, **Axios** 활용 *Client - Client* Routing / *Client - Server* API 통신 설정
+> **Node.js**의 경우 **Express** 경량화 웹 개발 프레임워크 사용
 
-### **0주차** ( ~ 5/18)
-> - 주제: Unity 3D와 웹 플랫폼 연동을 통한 UI/UX 설계 및 실시간 데이터 동기화 연구
+- UI/UX 디자인 설정
+> *CSS* 상위호환인 **SCSS(Sassy CSS)** 활용 웹 디자인 구성
+> **Framer-Motion** 활용 컴포넌트 별 애니메이션 추가
+> **React-Icons** 활용 웹 클라이언트 내 특정 아이콘 추가
 
-> - [Zenless Zone Zero](https://zenless.hoyoverse.com/ko-kr/main) 공식 홈페이지 및 게임 스타일 벤치마킹
+- Firebase 연동
+> **Cloud Firestore** 활용 데이터베이스 구축
+> **Authentication** 활용 사용자 인증 관리
+> **Cloud Storage** 활용 jpg, png 이미지 저장소 설정
 
-> - React + SCSS + Node.js(Express) + Firebase / JWT + Cookie + OAuth2.0
+- 사용자 회원가입 및 로그인 시스템 *(Local / Google)*
+> **JWT(Json Web Token)** + **HTTP Cookie** 방식 활용 사용자 인증 시스템
+> **Google OAuth 2.0** 활용 *Google* 로그인 시스템
+> **Nodemailer** 활용 이메일 인증코드 발송 및 인증 시스템
 
-> - **웹사이트 기능 설계**
->> 1. JWT + Cookie + OAuth2.0 활용 로컬 사용자 및 구글 인증 시스템 구현
->> 2. Unity **게임 플레이타임**에 따른 차등 보상 시스템 구현
->>> 1) 게임 플레이타임에 따른 웹 사이트 **'전용재화'** 획득
->>> 2) 획득한 재화로 웹 사이트 **'상점'** 페이지에서 특정 무기, 아이템 등 구매
->>> 3) 구매한 무기 및 아이템은 Unity 게임 내 사용 가능
->> 3. 웹 사이트 상 Unity 게임 다운로드 기능 구현
->> 4. 기타 기능 추가는 구현 중 설계 예정
+- 사용자 프로필 시스템
+> 사용자 정보 수정 및 회원탈퇴 시스템
+> **Multer** 활용 사용자 프로필 이미지 수정 및 기본 이미지 전환 시스템
 
-### **1주차** (5/19 ~ 5/25)
-> - 웹 프론트엔드 기본 **와이어프레임** 설계
+- Unity 게임 - 웹 통합 시스템
+> 사용자 통합 인증 시스템 *(사용자 회원가입 및 로그인 시스템 참조)*
+> 통합 상점, 통합 우편함 시스템 *(게임, 웹 내 동시 사용)*
+> 게임 플레이타임에 따른 웹 내 실시간 차등 보상 시스템 *(중간자: Cloud Firestore)*
 
-### **2주차** (5/26 ~ 6/1)
-> - VScode에 깃 & 깃허브 연동 및 첫 커밋
-
-> - 와이어프레임 기반 웹 사이트 기본 구조 구현(1)
->> 1. **Header - Main - Footer** 구성
->> 2. Main 페이지 스타일 및 컴포넌트 구성
->> 3. Header 컴포넌트에 **Link** 라우터로 페이지 라우팅 구현
-
-> - 웹 스타일 언어 SCSS 설정
->> 1. **(CLIENT)** *npm install sass*
-
-### **3주차** (6/2 ~ 6/8)
-> - 와이어프레임 기반 웹 사이트 기본 구조 구현(2)
->> 1. Header 및 Footer 스타일 구성
->> 2. 사용자 회원가입 및 로그인 Modal 창 기본 스타일 구현
-
-### **4주차** (6/9 ~ 6/15)
-> - 1 ~ 3주차 오류 수정 및 보완점 논의
-
-> - 3학년 1학기 기말고사 준비...
-
-### **5주차** (6/16 ~ 6/22)
-> - 사용자 인증 시스템 구현
->> 1. 클라이언트 쪽 사용자 회원가입 및 로그인 Modal 창 마무리 구현
->> 2. **(SERVER)** *npm install express cors body-parser*
->> 3. 서버 폴더 설정 및 index.js + users.json 파일 기본 설정
->> 4. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 설정 및 Client와 연동
-
-> - 프론트엔드(React) **Framer-Motion** 활용 웹 애니메이션 구현
->> 1. **(CLIENT)** *npm install framer-motion*
->> 2. Modal 창(로그인과 회원가입 하나의 Modal 창으로 통합) + 각 페이지 라우팅 애니메이션 연동 및 구현
-
-### **6주차** (6/23 ~ 6/29)
-> - **JWT + Cookie** 활용 사용자 인증 시스템 전환 구현
->> 1. **(SERVER)** *npm install jsonwebtoken cookie-parser dotenv*
->> 2. **(CLIENT)** *npm install axios*
->> 3. 회원가입 + 로그인 + 로그아웃 + 로그인 상태확인 서버 라우터 JWT와 Cookie로 변경
->> 4. .env 파일 설정
->>> 1) JWT 쪽 **SECRET_KEY** 설정
->>> 2) *node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"*
->> 5. **NodeMailer** 활용 이메일 인증코드 발송 시스템 구현
->>> 1) **(SERVER)** *npm install nodemailer*
->>> 2) 새 구글 이메일 생성 및 2차 인증 / 앱 비밀번호 설정
->>> 3) .env 파일에 **EMAIL_USER** / **EMAIL_PASS** 설정
->>> 4) 서버 index.js 라우팅 추가 및 수정
->>> 5) 클라이언트 회원가입 Modal 창 수정 및 서버 연동
-
-> - **Google OAuth 2.0** 활용 구글 인증 시스템 추가 구현
->> 1. Google Cloud 인증 플랫폼 - 클라이언트 생성 및 ID + Password 설정
->> 2. .env 파일에 **GOOGLE_CLIENT_ID** / **GOOGLE_CLIENT_SECRET** 설정
->> 3. **(SERVER)** *npm install passport passport-google-oauth20 express-session*
->> 4. 서버 index.js 라우팅 추가 및 JWT + Cookie 적용
-
-> - 사용자 프로필 Modal 창 구현
->> 1. 프로필 쪽 와이어프레임 추가 설계
->> 2. 클라이언트 Header 쪽 프로필 Modal 창 스타일 구현
->> 3. 서버 index.js 회원정보수정 + 회원탈퇴 라우터 설정 및 구현
->> 4. Modal(프로필과 회원정보수정 하나의 Modal 창으로 통합) 창 애니메이션 연동 및 구현
->> 5. **(SERVER)** *npm install multer*
->> 6. 사용자 관련 로직(회원가입, 로그인, 프로필 등..)에 이미지 항목 추가
->> 7. 서버 public\images 폴더 생성 및 상시 라우팅 설정
->>> 1) *app.use("/images", express.static(path.join(__dirname, "public/images")));*
->> 8. **Multer** 활용 서버 쪽 회원정보수정 이미지 라우팅 설정
->>> 1) 클라이언트에서 신규 이미지 변경 요청 → 기본 이미지 제외 수정전 이미지는 폴더에서 삭제 및 새 이미지 추가
->>> 2) 클라이언트에서 기본 이미지 변경 요청 → 기본 이미지 제외 수정전 이미지는 폴더에서 삭제
-
-### **7주차** (6/30 ~ 7/6)
-> - Header / Main / Play 컴포넌트 수정 및 애니메이션 추가
->> 1. 클라이언트 Header.jsx : 로그인을 완료한 사용자와 미완료한 사용자에게 보여지는 UI 수정
->>> 1) 로그인 X 일 경우 **Home - Play - ~~Event~~ - ~~Store~~ - Signin_Modal** (~~취소선~~의 경우 Header 부분에 구현되어있지만 접근 불가)
->>> 2) 로그인 O 일 경우 **Home - Play - Event - Store - Mailbox_Modal - Profile_Modal**
->>> 3) 신규 로컬 회원가입 또는 구글 로그인 시 사용자 데이터 테이블에 **Mailbox** 목록 추가 및 해당 우편함 값 Mailbox_Modal 창으로 불러오기 설정 **(초기값은 null)**
->> 2. 클라이언트 Main.jsx : Play - Event - Store 페이지 각각 컴포넌트 슬라이더로 변경 및 애니메이션 추가
->>> 1) 페이지별 라우터 버튼 생성 및 클릭 시 위치에 따라 좌우 변경 애니메이션 설정
->> 3. 클라이언트 Play.jsx : 게임 소개 및 스테이지, 무기 목록 카드 슬라이더로 변경 및 애니메이션 추가
->>> 1) 카드 슬라이더 별 좌우 버튼 생성 및 클릭 시 위치에 따라 좌우 변경 애니메이션 설정
->>> 2) 카드 데이터의 경우 클라이언트 JSON 파일로 저장 및 유지(추후 변경 예정)
-
-> - Unity 게임 **플레이타임**에 따른 차등 보상 기능 및 보상에 따른 이벤트 페이지 구현
->> 1. *(임시)* 로그인 상태 시 실시간 웹 플레이타임 시스템 구현 - Event 페이지
->> 2. 신규 로컬 회원가입 또는 구글 로그인 시 사용자 데이터 테이블에 **Playtime** 목록 추가 **(초기값은 00:00:00)**
->>> 1) 이벤트 페이지 새로고침 시 기존에 측정중인 플레이타임 초기화 문제 발견
->>> 2) 신규 로컬 회원가입 또는 구글 로그인 시 사용자 데이터 테이블에 **lastUpdatedAt** 목록 추가 및 서버 index.js 플레이타임 측정 라우터 수정
->>> 3) 클라이언트 PlaytimeContext.jsx 파일에서 lastUpdatedAt 계산 함수 추가
->>> 4) 신규 로컬 사용자에 대해 플레이타임 초기 측정값을 회원가입이 아닌 로그인 시 생성되게 수정 **(신규 로컬 회원가입 시 Playtime 초기값은 00:00:00이 아닌, null 값으로 설정)**
->>> 5) 페이지 탭 전환 시에도 계속 플레이타임이 측정되도록 서버 라우터 및 상태관리 시스템 수정
->> 3. 서버 index.js 플레이타임 측정 라우터 추가 및 클라이언트 연동
->> 4. 서버 items.json 파일 생성 및 이벤트 목록 데이터 불러오기 라우터 index.js에 추가
->> 5. 클라이언트 Event.jsx 페이지 UI 수정 및 목록 별 클릭 로직 설정(30분 단위로 상품 설정)
->> 6. 플레이타임 30분마다 각각의 목록들 활성화 및 해당 목록 클릭 시 우편함에 전송되어, Mailmox_Modal 창에 보여지도록 구현
-
-> - Google 인증 시스템 관련 오류 수정
->> 1. 구글 사용자 회원탈퇴 시 토큰 포함 쿠키가 삭제되지 않고 남는 오류 발견
->> 2. 브라우저 내부에서는 삭제되었지만, Google OAuth 2.0 시스템 내부에 남아있어, 브라우저 세션으로 불러오는 오류 발견
->> 3. 서버 users.json 파일 users 테이블 + **deletedUsers 테이블** 생성 및 구글 사용자 회원탈퇴 시 users 테이블에 저장되어 있던 이메일 정보가 deletedUsers 테이블로 추가(Google만 해당) → **재로그인 방지**
-
-### **8주차** (7/7 ~ 7/13)
-> - 로컬 & 구글 로그인된 사용자 Token 갱신 시스템 구현
->> 1. 서버 index.js 로컬 & 구글 로그인시 Access Token(1시간) + Refresh Token(7일) 발급받도록 라우터 수정
->> 2. **(CLIENT)** ~~npm install js-cookie~~ 
->>> 1) 클라이언트 쪽 *npm install js-cookie* 진행
->>> 2) 브라우저에서 Cookie 및 Token을 감지하지 못하는 오류 발생
->>> 3) 애초에 **HttpOnly Cookie** 같은 경우 보안 프로토콜과 무관하게 브라우저에서 JS 접근 차단
->>> 4) 서버 쪽 JWT → 클라이언트 보내주는 API 생성 관련 token-info 라우터 설정
->>> 5) 클라이언트에서 주기적으로 token-info 라우터 요청으로 Token 잔여시간 확인
->>> 6) 사용되지 않는 js-cookie 모듈 삭제 진행 *npm uninstall js-cookie*
->> 3. 클라이언트 쪽에서 1분 간격으로 Token 디코딩 및 잔여시간 체크 **(token-info 라우터)**
->> 4. 잔여 시간이 5분 미만일 경우 자동으로 index.js로 **refresh-token 라우터** 요청 (Header.jsx + Event.jsx)
->> 5. 서버 index.js refresh-token 라우터로 요청한 사용자의 Refresh Token 보유여부 판단 및 동일한 사용자인지 판단 후 새 Access Token(1시간) 및 Cookie 생성
->> 6. 반복 후 7일 정도 지날 경우 Refresh Token 만료 및 자동 로그아웃 진행
-
-> - Store 페이지 UI 수정 및 서버 라우팅 구현
->> 1. 상점 페이지 내부 웹_상점(웹에서만 구매가능) / 게임_상점(웹, 게임에서 둘다 구매가능) 2가지 상점 구현 및 애니메이션 추가 설정
->> 2. 로컬 회원가입 및 구글 로그인 시 사용자 데이터 테이블에 'Ticket', 'Coin' 목록 추가 및 관련 라우터 수정
->> 3. **(CLIENT)** *npm install react-icons*
->> 4. 우편함, 프로필 UI 수정 및 해당 데이터에 대한 서버 라우팅 변경
->>> 1) 우편함(Mailbox) 목록 표 형태로 UI 수정 **(ID-출처-이름-수량-수령날짜 구조)**
->>> 2) Event 페이지 목록 중 '웹상점티켓(Ticket)'과 '골드(Coin)'의 경우 우편함 전송이 아닌, USER 정보로 직접 저장 및 Profile_Modal 창 수량 표시
->>> 3) Event 페이지 목록 중 나머지 아이템들은 우편함 전송으로 유지
->>> 4) Store 페이지 목록 중 구매한 모든 아이템들은 우편함 전송으로 설정
-
-### **9주차** (7/14 ~ 7/20)
-> - **Firebase** React + Node.js(Express) 연동 및 서버 라우터 전체 리팩토링
->> 1. **(SERVER)** *npm install firebase-admin*
->> 2. 서버 쪽 serviceAccountKey.json 발급 및 firebase.js 환경 설정
->> 3. Firebase 연동 시 Google OAuth 2.0 기본 내장이므로 사용되지 않는 모듈 삭제 진행 *npm uninstall passport passport-google-oauth20*
->> 4. **(CLIENT)** *npm install firebase*
->> 5. 클라이언트 쪽 firebase.js 환경 설정 
->> 6. Firestore Database + Authentication + Storage 설정
->>> 1) Database **items / users / verifications etc** 생성 및 이전의 JSON 파일 값 데이터베이스로 이동
->>> 2) Authentication **Local / Google** 사용 설정 및 Google-OAuth 2.0 Client ID 값 확인
->>> 3) Storage **items / profiles / stages / weapons** 이미지 저장 및 *커스텀 버킷* 확인
->> 7. 서버쪽 index.js 코드 리팩토링 진행
->>> 1) Local + Google 로그인 및 회원가입 / 로그인 상태확인 / 회원정보수정 / 로그아웃 / 회원탈퇴 라우터 수정
->>> 2) Local 회원가입 시 이메일 인증 코드 발송 및 확인 라우터 수정
->>> 3) 일반 Token 및 갱신 Token 발급 / Token 자동 갱신 라우터 수정
->>> 4) 아이템 조회 및 구매 / 우편함 조회 및 추가 라우터 수정
->>> 5) 플레이타임 측정 및 저장 / 서버 Ping 측정 라우터 수정
->> 8. 플레이타임 저장 형식 **"00:00:00"(String) → 0(초)(Number)** 변경 및 관련된 라우터 수정
-
-> - 회원가입 / 회원정보수정 시 특수 기능 추가 구현
->> 1. 회원가입 시 **이름 / 이메일** 중복 확인 + **비밀번호 보안조건(대소문자+숫자+특수문자 포함 8~20자)** 확인 기능 설정
->>> 1) 이름 / 이메일 중복 확인같은 경우 서버쪽 *check-name / check-email* 라우터 설정 후 클라이언트에서 요청 받도록 설계
->>> 2) 비밀번호 보안조건 같은 경우 클라이언트쪽에서 함수 설계\
->>> 3) **비밀번호 길이: 8~20자 / 대문자: A-Z / 소문자: a-z / 숫자: 0-9 / 특수문자: !@#$%^&*(),.?":{}|<>** 모두 만족하도록 설정
->>> 4) 중복 확인 및 보안조건 확인 후에만 회원가입이 가능하도록 조건 설정
->> 2. 회원정보수정 시 **이름** 중복 확인 + **비밀번호 보안조건(대소문자+숫자+특수문자 포함 8~20자)***(Local만 해당)* 확인 기능 설정
->>> 1) 이름 중복 확인같은 경우 서버쪽 *check-name* 라우터에서 분기 설정 후 cookie 속 Token 보유시에 수정할 수 있도록 설정
->>> 2) 비밀번호 보안조건 같은 경우 클라이언트쪽과 서버쪽 *update-profile* 라우터 모두 설정하여 UI/UX 개편(보안조건의 경우 회원가입 시와 동일))
->>> 3) 중복 확인 및 보안조건 확인 후에만 회원정보수정이 가능하도록 조건 설정
->>> 4) 비밀번호 수정 시 Firebase 특성상 기존 Token은 즉시 만료가 되므로, 자동 로그아웃 되도록 처리
-
-### **10주차** (7/21 ~ )
-> - 서버 index.js 파일 **모듈화** 및 **디렉토리 구조**로 분리
->> 1. routes 폴더 : *auth.js / user.js / mail.js / item.js / playtime.js*
->>> 1) **auth.js** : 로그인, 세션, 토큰, 인증 **(/oauth/google, /sessionLogin, /status, /signout, /refresh-token)**
->>> 2) **user.js** : 회원정보 수정, 이름/이메일 체크, 회원탈퇴 **(/check-name, /check-email, /update-profile, /delete-account)**
->>> 3) **mail.js** : 우편함 관련 **(/request-verification, /verify-code, /mailbox, /mailbox-all)**
->>> 4) **item.js** : 아이템 조회, 상점 구매 **(/items, /purchase)**
->>> 5) **playtime.js** : 플레이타임 관련 **(/save-playtime, /update-last-activity)**
->> 2. utiles 폴더 : *formatSeconds.js / authenticate.js / upload.js*
->>> 1) **formatSeconds.js** : 00:00:00 포맷 변환 함수
->>> 2) **authenticate.js** : JWT 인증 미들웨어
->>> 3) **upload.js** : multer 업로드 설정
->> 3. 상단 : *mailer.js / firebase.js / serviceAccountKey.json / index.js*
->>> 1) **mailer.js** : 이메일 인증 발송 유틸
->>> 2) **firebase.js** : Firebase 초기화 (db / auth / bucket)
->>> 3) **serviceAccountKey.json** : Firebase 서비스 계정 키 (.gitignore 처리)
->>> 4) **index.js** : 앱 시작점, 모든 라우터 등록
-
-> - Main 페이지 상단 **자동 이미지 슬라이더 UI**로 변경
->> 1. Firebase Storage의 stages 폴더에 저장된 5개 스테이지 이미지 URL 확인
->> 2. Main 페이지 코드에 해당 URL 배열로 저장 및 import
->> 3. Framer-motion 모듈과 useEffect Hook 활용 5초마다 해당 이미지들이 순서대로 나타나게 설정
-
-> - 오류 수정 및 추가 기능 개발 설계 및 마무리
 -----
 ## Unity Game
 
-### DataBase
-- 사용자 아이디/비밀번호
-- 무기별 강화/돌파 수치
-- 패시브별 강화/돌파 수치
-- 가챠재화 & 강화재화(고철부품)
-- 소지중인 무기 목록
-- 장착중인 무기
-- 게임 플레이타임(전투 맵에 존재한 시간)
-- 메인 퀘스트 진행도
-- [무한웨이브] 진행도
-- 서브 퀘스트 진행도(특정 무한웨이브 클리어시 순차적 생성)
-
 ### Weapon(Skill)
 - 로켓 런처(미사일) [Damage] : 탄창기반
-- 화염방사기 [Damage] : 쿨타임기반
-- 레이저빔 [Damage] : 쿨타임기반
-- 얼음분사기 [CC] : 쿨타임기반
-- 스턴컨 [CC] : 쿨타임기반
+- 화염방사기 [Damage] : 탄창기반
+- 레이저빔 [Damage] : 탄창기반
+- 얼음분사기 [CC] : 탄창기반
+- 스턴컨 [CC] : 탄창기반
 
-### Passive - 수정필요
-- 패시브의 경우 무기(스킬)와 다르게 상시 장착
-- [주먹] 일반 : 공속↑ / 공격력↑
-- [주먹] 클로 : 공속↑↑
-- [주먹] 자마다르 : 공격력↑↑
-- [다리] 일반 : 공속↑ / 공격력↑
-- [다리] 검발(임시) : 공격력↑↑
-
-### 가챠 시스템 - (재화 : 가챠재화)
-- 가챠 목록 : 무기 / 패시브 / 고철부품(강화재화)
+### 가챠 시스템 - (재화 : 고급고철부품)
+- 가챠 목록 : 무기 / 고철부품(강화재화)
 - 가챠 진행 시 '고철부품'의 경우 '강화 시스템' 진행
-- 무기 및 패시브에 대한 중복 가챠 가능
+- 무기에 대한 중복 가챠 가능
 - 만약, '화염방사기' 무기를 보유한 상태에서 해당 가챠 진행시 화염방사기가 중복해서 나올 경우 '돌파 시스템' 진행 (돌파의 경우 최대 5강까지 진행)
 
 ### 강화 시스템 - (재화 : 고철부품)
-- 강화 목록 : 무기 / 패시브
+- 강화 목록 : 무기
 - 강화 시스템의 경우 최대 10강까지 진행
 - 단, 특정 강화 이후부턴 [실패/성공] 확률 시스템 도입
 - '가챠 시스템'에서 일정확률로 나오는 재화 : [고철부품]
 - '강화 시스템'에 소비되는 '고철부품'의 경우 게임 플레이중 [로봇] 몹 사살 시에도 드랍
-- 무기 / 패시브 강화 시 공격력↑ / 공속↑
+- 무기 강화 시 공격력↑ / 공속↑
 
-### 돌파 시스템 - (재화 : 해당 무기/패시브와 동일한 무기/패시브)
-- 기존 무기 혹은 패시브를 보유한 상태에서 동일한 무기 / 패시브 가챠 성공 시 해당 무기 및 패시브 [돌파] 가능
+### 돌파 시스템 - (재화 : 해당 무기와 동일한 무기)
+- 기존 무기를 보유한 상태에서 동일한 무기 가챠 성공 시 해당 무기 [돌파] 가능
 - 돌파 시스템의 경우 최대 5강까지 진행
 - 해당 돌파 시스템은 확률 시스템 도입하지 않음
-- 무기 / 패시브 돌파 시 쿨타임↑ / 탄창칸↑
+- 무기 돌파 시 쿨타임↑ / 탄창칸↑
