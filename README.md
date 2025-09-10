@@ -35,7 +35,7 @@
 -----
 
 ## GAME - WEB Architecture
-
+![게임-웹 아키텍처](https://github.com/C-hyeon/fearless_web/blob/main/Architecture.png)
 
 -----
 
