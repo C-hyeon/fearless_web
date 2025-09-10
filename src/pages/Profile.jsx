@@ -3,16 +3,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import "../styles/Modal.scss";
 import "../styles/Header.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 const Profile = ({ user, onSignout, onClose, onDelete }) => {
     const [showUpdateProfile, setShowUpdateProfile] = useState(false);
-    const [updateProfile, setUpdateProfile] = useState({
-        name: user.name,
-        password: ""
-    });
-    const [validationState, setValidationState] = useState({
-        nameChecked: true,
-        passwordChecked: true
-    });
+    const [updateProfile, setUpdateProfile] = useState({name: user.name, password: ""});
+    const [validationState, setValidationState] = useState({nameChecked: true, passwordChecked: true});
     const [previewImage, setPreviewImage] = useState(user.profileImage);
     const [resetToDefault, setResetToDefault] = useState(false);
 
@@ -36,10 +32,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
     const checkDuplicateName = async () => {
         if (!updateProfile.name.trim()) return alert("이름을 입력해주세요.");
         try {
-            const res = await fetch(`http://localhost:5000/check-name?name=${updateProfile.name}`, {
-                method: "GET",
-                credentials: "include"
-            });
+            const res = await fetch(`${API_BASE}/check-name?name=${updateProfile.name}`, {method: "GET", credentials: "include"});
             const data = await res.json();
             if (data.available) {
                 alert("사용 가능한 이름입니다.");
@@ -72,7 +65,6 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
         }
     };
 
-
     const handleUpdate = async () => {
         if (!validationState.nameChecked) {
             alert("이름 중복 검사를 완료해주세요.");
@@ -100,16 +92,11 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
         }
 
         try {
-            const res = await fetch("http://localhost:5000/update-profile", {
-                method: "POST",
-                credentials: "include",
-                body: formData
-            });
+            const res = await fetch(`${API_BASE}/update-profile`, {method: "POST", credentials: "include", body: formData});
 
             const data = await res.json();
             alert(data.message);
 
-            // 비밀번호 변경한 경우 자동 로그아웃 → 로그인 페이지로 이동
             if (isPasswordChanged) {
                 alert("비밀번호가 변경되어 다시 로그인해야 합니다.");
                 onSignout();
@@ -143,23 +130,23 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                     <div
                         className="user_img"
                         style={{
-                            backgroundImage: previewImage.startsWith("blob:") || previewImage.startsWith("http")
-                                ? `url(${previewImage})`
-                                : `url(${previewImage})`
+                        backgroundImage: previewImage.startsWith("blob:") || previewImage.startsWith("http")
+                            ? `url(${previewImage})`
+                            : `url(${previewImage})`
                         }}
                     />
                     <div className="profile_info">
                         <h2 className="name">{user.name}</h2>
                         <div className="status">
-                            <div className="status_row">
-                                <span>웹상점티켓</span>
-                                <span>{user.ticket ?? 0}</span>
-                            </div>
-                            <hr className="status_divider" />
-                            <div className="status_row">
-                                <span>골드</span>
-                                <span>{user.coin ?? 0}</span>
-                            </div>
+                        <div className="status_row">
+                            <span>웹상점티켓</span>
+                            <span>{user.ticket ?? 0}</span>
+                        </div>
+                        <hr className="status_divider" />
+                        <div className="status_row">
+                            <span>골드</span>
+                            <span>{user.items?.currency_credit ?? 0}</span>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -171,11 +158,11 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 <AnimatePresence>
                     {showUpdateProfile && (
                         <motion.div
-                            className="update_form"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.4 }}
+                        className="update_form"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.4 }}
                         >
                             <h2 className="update_title">회원정보 수정</h2>
 
@@ -184,18 +171,18 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                 type="file"
                                 accept="image/*"
                                 onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (!file) return;
+                                const file = e.target.files[0];
+                                if (!file) return;
 
-                                    // [1] 이미지가 아닌 경우 차단
-                                    if (!file.type.startsWith("image/")) {
+                                // [1] 이미지가 아닌 경우 차단
+                                if (!file.type.startsWith("image/")) {
                                     alert("이미지 파일만 업로드 가능합니다.");
                                     return;
-                                    }
+                                }
 
-                                    setUpdateProfile((prev) => ({ ...prev, profileImage: file }));
-                                    setPreviewImage(URL.createObjectURL(file));
-                                    setResetToDefault(false);
+                                setUpdateProfile((prev) => ({ ...prev, profileImage: file }));
+                                setPreviewImage(URL.createObjectURL(file));
+                                setResetToDefault(false);
                                 }}
                                 className="update_input"
                             />
@@ -204,24 +191,22 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                 setUpdateProfile((prev) => ({ ...prev, profileImage: null }));
                                 setPreviewImage("https://firebasestorage.googleapis.com/v0/b/fearless-3e591.firebasestorage.app/o/profiles%2FUser_defaultImg.png?alt=media&token=f9a4635c-bfab-4abc-941f-677a1d9cde45");
                                 alert("기본 이미지로 변경 요청이 전송됩니다.");
-                            }}>
-                                기본이미지 변경
-                            </button>
+                            }}>기본이미지 변경</button>
 
                             <div className="update_input-group">
-                                <input name="name" type="text" placeholder="이름 / 별명" value={updateProfile.name} onChange={handleChange} className="update_input"/>
+                                <input name="name" type="text" placeholder="이름 / 별명" value={updateProfile.name} onChange={handleChange} className="update_input" />
                                 <button className="check_btn" onClick={checkDuplicateName}>✔</button>
                             </div>
                             <div className="update_input-group">
-                                <input type="email" value={user.email} readOnly className="update_input blurred"/>
+                                <input type="email" value={user.email} readOnly className="update_input blurred" />
                             </div>
                             <div className="update_input-group">
-                                <input type="text" value={user.provider} readOnly className="update_input blurred"/>
+                                <input type="text" value={user.provider} readOnly className="update_input blurred" />
                             </div>
 
                             {user.provider === "Local" && (
                                 <div className="update_input-group">
-                                    <input name="password" type="password" placeholder="새 비밀번호(대소문자+숫자+특수문자 포함 8자 이상)" value={updateProfile.password} onChange={handleChange} className="update_input"/>
+                                    <input name="password" type="password" placeholder="새 비밀번호(대소문자+숫자+특수문자 포함 8자 이상)" value={updateProfile.password} onChange={handleChange} className="update_input" />
                                     <button className="check_btn" onClick={() => evaluatePasswordStrength(updateProfile.password, true)}>✔</button>
                                 </div>
                             )}

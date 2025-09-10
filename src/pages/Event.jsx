@@ -5,6 +5,9 @@ import Wrapper from "../components/Wrapper";
 import { usePlaytime } from "../utils/PlaytimeContext";
 import { formatSeconds, parseTimeString } from "../utils/formatTime";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const api = axios.create({ baseURL: API_BASE, withCredentials: true });
+
 const Event = () => {
     const [events, setEvents] = useState([]);
     const [unlockTimes, setUnlockTimes] = useState([]);
@@ -21,31 +24,21 @@ const Event = () => {
 
         const fetchProtectedData = async () => {
             try {
-                const statusRes = await axios.get("http://localhost:5000/status", {
-                    withCredentials: true
-                });
-
+                const statusRes = await api.get("/status");
                 if (!statusRes.data.loggedIn) {
                     alert("로그인이 필요합니다.");
                     window.location.href = "/";
                     return;
                 }
 
-                const itemsRes = await axios.get("http://localhost:5000/items", {
-                    withCredentials: true
-                });
+                const itemsRes = await api.get("/items");
                 setEvents(itemsRes.data.events || []);
 
-                const times = (itemsRes.data.events || []).map(ev => 
-                    parseTimeString(ev.time)
-                );
+                const times = (itemsRes.data.events || []).map(ev => parseTimeString(ev.time));
                 setUnlockTimes(times);
 
-                const mailboxRes = await axios.get("http://localhost:5000/mailbox-all", {
-                    withCredentials: true
-                });
+                const mailboxRes = await api.get("/mailbox-all");
                 const mailboxTitles = mailboxRes.data.mailbox.map(mail => mail.title);
-
                 setClaimedTitles(mailboxTitles);
 
             } catch (err) {
@@ -61,11 +54,8 @@ const Event = () => {
     useEffect(() => {
         const onVisible = async () => {
             if (hasRefreshedRef.current) return;
-
             try {
-                await axios.post("http://localhost:5000/refresh-token", {}, {
-                    withCredentials: true
-                });
+                await api.post("/refresh-token");
                 console.log("탭 복귀로 인해 세션 자동 연장됨");
                 hasRefreshedRef.current = true;
             } catch (err) {
@@ -74,9 +64,7 @@ const Event = () => {
         };
 
         const handleVisibilityChange = () => {
-            if (document.visibilityState === "visible") {
-                onVisible();
-            }
+            if (document.visibilityState === "visible") onVisible();
         };
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -88,7 +76,10 @@ const Event = () => {
         setIsClaiming(true);
 
         const event = events[index];
-        if (currentPlaytime < unlockTimes[index]) return;
+        if (currentPlaytime < unlockTimes[index]) {
+            setIsClaiming(false);
+            return;
+        }
         if (claimedTitles.includes(event.title)) {
             alert("이미 수령한 아이템입니다!");
             setIsClaiming(false);
@@ -96,7 +87,7 @@ const Event = () => {
         }
 
         try {
-            const res = await axios.post("http://localhost:5000/mailbox", {
+            const res = await api.post("/mailbox", {
                 title: event.title,
                 content: event.description,
                 count: event.count || 1,
@@ -104,7 +95,7 @@ const Event = () => {
                 image: event.image,
                 description: event.description,
                 time: event.time
-            }, { withCredentials: true });
+            });
 
             alert(res.data.message);
             window.location.reload();
