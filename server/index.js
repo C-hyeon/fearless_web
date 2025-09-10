@@ -24,5 +24,5 @@ app.use(itemRoutes);
 app.use(playtimeRoutes);
 
 app.listen(PORT, () => {
-    console.log(`[${new Date().toISOString()}] 🚀 서버 실행 중: http://localhost:${PORT}`);
+    console.log(`[${new Date().toISOString()}] 서버 실행중 : http://localhost:${PORT}`);
 });

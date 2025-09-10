@@ -1,13 +1,14 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const admin = require("firebase-admin");
 const router = express.Router();
 const { db } = require("../firebase");
 const formatSeconds = require("../utils/formatSeconds");
 const authenticateToken = require("../utils/authenticate");
-
 const SECRET_KEY = process.env.SECRET_KEY;
 const DEFAULT_PROFILE_IMAGE = process.env.DEFAULT_PROFILE_IMAGE;
 const isProduction = process.env.NODE_ENV === "production";
+const CURRENCY_CREDIT_ID = "currency_credit";
 
 // Google OAuth 로그인
 router.post("/oauth/google", async (req, res) => {
@@ -18,7 +19,7 @@ router.post("/oauth/google", async (req, res) => {
         const doc = await userRef.get();
 
         let playtimeInSeconds = 0;
-        const now = new Date().toISOString();
+        const now = admin.firestore.FieldValue.serverTimestamp();
 
         if (!doc.exists) {
             await userRef.set({
@@ -28,24 +29,13 @@ router.post("/oauth/google", async (req, res) => {
                 playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 ticket: 0,
-                coin: 0,
+                items: {[CURRENCY_CREDIT_ID]: 0},
                 lastUpdatedAt: now
             }, {merge: true});
         } else {
             const data = doc.data();
-
-            if (typeof data.playtime === "number" && data.lastUpdatedAt) {
-                const last = new Date(data.lastUpdatedAt);
-                const nowDate = new Date();
-                const elapsed = Math.floor((nowDate - last) / 1000); 
-
-                playtimeInSeconds = data.playtime;
-
-                await userRef.update({ playtime: playtimeInSeconds, lastUpdatedAt: nowDate.toISOString() });
-            } else {
-                playtimeInSeconds = data.playtime ?? 0;
-                await userRef.update({ lastUpdatedAt: new Date().toISOString() });
-            }
+            playtimeInSeconds = typeof data.playtime === "number" ? data.playtime : 0;
+            await userRef.update({ lastUpdatedAt: now });
         }
 
         const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
@@ -69,7 +59,7 @@ router.post("/sessionLogin", async (req, res) => {
         const doc = await userRef.get();
 
         let playtimeInSeconds = 0;
-        const now = new Date().toISOString();
+        const now = admin.firestore.FieldValue.serverTimestamp();
 
         if (!doc.exists) {
             await userRef.set({
@@ -79,24 +69,13 @@ router.post("/sessionLogin", async (req, res) => {
                 playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 ticket: 0,
-                coin: 0,
+                items: {[CURRENCY_CREDIT_ID]: 0},   // 코인에서 아이템.크래딧으로 수정
                 lastUpdatedAt: now
             }, {merge: true});
         } else {
             const data = doc.data();
-
-            if (typeof data.playtime === "number" && data.lastUpdatedAt) {
-                const last = new Date(data.lastUpdatedAt);
-                const nowDate = new Date(); 
-                const elapsed = Math.floor((nowDate - last) / 1000); 
-
-                playtimeInSeconds = data.playtime;
-
-                await userRef.update({ playtime: playtimeInSeconds, lastUpdatedAt: nowDate.toISOString() });
-            } else {
-                playtimeInSeconds = data.playtime ?? 0;
-                await userRef.update({ lastUpdatedAt: new Date().toISOString() });
-            }
+            playtimeInSeconds = typeof data.playtime === "number" ? data.playtime : 0;
+            await userRef.update({ lastUpdatedAt: now });        // 이제 웹에서 측정하지 않고, 게임 플레이타임만 읽어오는 방식으로 변경
         }
 
         const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });

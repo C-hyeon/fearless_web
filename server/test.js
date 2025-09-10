@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
+const admin = require("firebase-admin");    // serverTimestamp 수정
 const { db, auth, bucket } = require("./firebase");
 const { sendVerificationEmail } = require("./mailer");
 
@@ -16,6 +17,9 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const isProduction = process.env.NODE_ENV === "production";
 
 const DEFAULT_PROFILE_IMAGE = process.env.DEFAULT_PROFILE_IMAGE;
+
+const CURRENCY_CREDIT_ID = "currency_credit";       // 크래딧 아이템 ID 수정
+const CURRENCY_TICKET_ID = "currency_ticket";       // 티켓 아이템 ID 수정
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(bodyParser.json());
@@ -53,10 +57,9 @@ app.post("/oauth/google", async (req, res) => {
         const doc = await userRef.get();
 
         let playtimeInSeconds = 0;
-        const now = new Date().toISOString();
+        const now = admin.firestore.FieldValue.serverTimestamp();
 
         if (!doc.exists) {
-            // 신규 가입자: playtime을 null로 초기화
             await userRef.set({
                 name,
                 email,
@@ -64,25 +67,13 @@ app.post("/oauth/google", async (req, res) => {
                 playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 ticket: 0,
-                coin: 0,
+                items: {[CURRENCY_CREDIT_ID]: 0},   // 코인에서 아이템.크래딧으로 수정
                 lastUpdatedAt: now
             }, {merge: true});
         } else {
             const data = doc.data();
-
-            // ✅ 보호 조건 추가
-            if (typeof data.playtime === "number" && data.lastUpdatedAt) {
-                const last = new Date(data.lastUpdatedAt);
-                const nowDate = new Date(); // 현재 시각
-                const elapsed = Math.floor((nowDate - last) / 1000); // 경과 시간 (초)
-
-                playtimeInSeconds = data.playtime;
-
-                await userRef.update({ playtime: playtimeInSeconds, lastUpdatedAt: nowDate.toISOString() });
-            } else {
-                playtimeInSeconds = data.playtime ?? 0;
-                await userRef.update({ lastUpdatedAt: new Date().toISOString() });
-            }
+            playtimeInSeconds = typeof data.playtime === "number" ? data.playtime : 0;
+            await userRef.update({ lastUpdatedAt: now });        // 이제 웹에서 측정하지 않고, 게임 플레이타임만 읽어오는 방식으로 변경
         }
 
         const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
@@ -106,7 +97,7 @@ app.get("/check-name", async (req, res) => {
     try {
         const token = req.cookies.token;
         if (token) {
-            const decoded = jwt.verify(token, process.env.SECRET_KEY);
+            const decoded = jwt.verify(token, SECRET_KEY);
             uid = decoded.uid;
         }
     } catch (e) {}
@@ -133,10 +124,9 @@ app.post("/sessionLogin", async (req, res) => {
         const doc = await userRef.get();
 
         let playtimeInSeconds = 0;
-        const now = new Date().toISOString();
+        const now = admin.firestore.FieldValue.serverTimestamp();
 
         if (!doc.exists) {
-            // 신규 가입자
             await userRef.set({
                 name: name,
                 email,
@@ -144,25 +134,13 @@ app.post("/sessionLogin", async (req, res) => {
                 playtime: playtimeInSeconds,
                 profileImage: DEFAULT_PROFILE_IMAGE,
                 ticket: 0,
-                coin: 0,
+                items: {[CURRENCY_CREDIT_ID]: 0},   // 코인에서 아이템.크래딧으로 수정
                 lastUpdatedAt: now
             }, {merge: true});
         } else {
             const data = doc.data();
-
-            // ✅ 보호 조건 추가
-            if (typeof data.playtime === "number" && data.lastUpdatedAt) {
-                const last = new Date(data.lastUpdatedAt);
-                const nowDate = new Date(); // 현재 시각
-                const elapsed = Math.floor((nowDate - last) / 1000); // 경과 시간 (초)
-
-                playtimeInSeconds = data.playtime;
-
-                await userRef.update({ playtime: playtimeInSeconds, lastUpdatedAt: nowDate.toISOString() });
-            } else {
-                playtimeInSeconds = data.playtime ?? 0;
-                await userRef.update({ lastUpdatedAt: new Date().toISOString() });
-            }
+            playtimeInSeconds = typeof data.playtime === "number" ? data.playtime : 0;
+            await userRef.update({ lastUpdatedAt: now });        // 이제 웹에서 측정하지 않고, 게임 플레이타임만 읽어오는 방식으로 변경
         }
 
         const token = jwt.sign({ email, uid }, SECRET_KEY, { expiresIn: "1h" });
@@ -181,9 +159,8 @@ app.post("/sessionLogin", async (req, res) => {
 // 인증코드 발송
 app.post("/request-verification", async (req, res) => {
     const { email } = req.body;
-    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6자리 숫자
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Firestore에 저장
     await db.collection("verifications").doc(email).set({
         code,
         createdAt: Date.now()
@@ -235,10 +212,8 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
         const userRecord = await auth.getUser(uid);
         const providerId = userRecord.providerData[0]?.providerId || "unknown";
 
-        // 🔹 이름 수정
         if (req.body.name) updateData.name = req.body.name;
 
-        // 🔹 비밀번호 수정 (로컬 사용자만)
         if (req.body.password) {
             if (providerId !== "password") {
                 return res.status(400).json({ message: "소셜 로그인 사용자는 비밀번호를 수정할 수 없습니다." });
@@ -258,14 +233,12 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
             await auth.updateUser(uid, { password: req.body.password });
         }
 
-        // 🔹 기본 이미지로 변경 요청
         if (req.body.resetToDefault === "true") {
             const defaultImage = process.env.DEFAULT_PROFILE_IMAGE;
             if (!defaultImage) {
                 return res.status(500).json({ message: "기본 프로필 이미지가 설정되지 않았습니다." });
             }
 
-            // ✅ 이전 이미지 삭제
             const userSnapshot = await userRef.get();
             const previousImage = userSnapshot.data()?.profileImage;
             if (
@@ -277,14 +250,13 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
                 if (match && match[1]) {
                     const oldPath = decodeURIComponent(match[1]);
                     await bucket.file(oldPath).delete().catch((e) => {
-                        console.warn("[⚠️ 이미지 삭제 실패]", oldPath, e.message);
+                        console.warn("이미지 삭제 실패", oldPath, e.message);
                     });
                 }
             }
             updateData.profileImage = defaultImage;
 
         } else if (req.file && req.file.buffer && req.file.mimetype.startsWith("image/")) {
-            // 🔹 이전 이미지 삭제 (선택적으로 추가 가능)
             const userSnapshot = await userRef.get();
             const previousImage = userSnapshot.data()?.profileImage;
             if (
@@ -296,12 +268,11 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
                 if (match && match[1]) {
                     const oldPath = decodeURIComponent(match[1]);
                     await bucket.file(oldPath).delete().catch((e) => {
-                        console.warn("[⚠️ 이미지 삭제 실패]", oldPath, e.message);
+                        console.warn("이미지 삭제 실패", oldPath, e.message);
                     });
                 }
             }
 
-            // 🔹 새 이미지 업로드
             const filename = `profiles/${uid}-${Date.now()}.png`;
             const token = uuidv4();
             const blob = bucket.file(filename);
@@ -310,9 +281,9 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
                 metadata: {
                     contentType: req.file.mimetype,
                     metadata: {
-                        firebaseStorageDownloadTokens: token
-                    }
-                }
+                        firebaseStorageDownloadTokens: token,
+                    },
+                },
             });
 
             blobStream.end(req.file.buffer);
@@ -326,7 +297,6 @@ app.post("/update-profile", authenticateToken, upload.single("profileImage"), as
             updateData.profileImage = imageUrl;
         }
 
-        // 🔹 Firestore 업데이트
         if (Object.keys(updateData).length > 0) {
             await userRef.update(updateData);
         }
@@ -369,26 +339,21 @@ app.post("/delete-account", authenticateToken, async (req, res) => {
     try {
         const { uid, email } = req.user;
 
-        // 1. 서브컬렉션 mailbox 전부 삭제
         const mailboxRef = db.collection("users").doc(uid).collection("mailbox");
         const mailboxSnapshot = await mailboxRef.get();
         const batch = db.batch();
         mailboxSnapshot.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
 
-        // 2. 사용자 문서 삭제
         await db.collection("users").doc(uid).delete();
 
-        // 3. 삭제 기록 저장
         await db.collection("deletedUsers").doc(uid).set({
             email,
-            deletedAt: new Date().toISOString()
+            deletedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 4. 인증 계정 삭제
         await auth.deleteUser(uid);
 
-        // 5. 쿠키 제거
         res.clearCookie("token");
         res.clearCookie("refreshToken");
 
@@ -421,7 +386,7 @@ app.get("/items", async (req, res) => {
 // 티켓/코인 포함 우편함 조회
 app.get("/mailbox-all", authenticateToken, async (req, res) => {
     try {
-        const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").get();
+        const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").orderBy("timestamp", "desc").get();   // timestamp 추가 수정
         const mailbox = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.json({ mailbox });
     } catch (err) {
@@ -432,125 +397,141 @@ app.get("/mailbox-all", authenticateToken, async (req, res) => {
 // 티켓/코인 제외 우편함 조회
 app.get("/mailbox", authenticateToken, async (req, res) => {
     try {
-        const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").get();
+        const snapshot = await db.collection("users").doc(req.user.uid).collection("mailbox").orderBy("timestamp", "desc").get();   // timestamp 추가 수정
         const mailbox = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const filteredMailbox = mailbox.filter(mail => mail.type !== "coin" && mail.type !== "ticket");
-        res.json({ mailbox: filteredMailbox });
+        
+        const filtered = mailbox.filter((mail) => {
+            const items = Array.isArray(mail.items) ? mail.items : [];
+            return !items.some(
+                (it) => it?.itemID === CURRENCY_CREDIT_ID || it?.itemID === CURRENCY_TICKET_ID
+            );
+        });     // filtered 변수 수정
+
+        res.json({ mailbox: filtered });
     } catch (err) {
         res.status(500).json({ message: "우편함 로드 실패", error: err.message });
     }
 });
 
 
-// 우편함 추가
+// 우편함 추가(수정)
 app.post("/mailbox", authenticateToken, async (req, res) => {
-    const { title, content, count = 1, type, image, description, time } = req.body;
-
     try {
         const userRef = db.collection("users").doc(req.user.uid);
-        const userSnap = await userRef.get();
-        const userData = userSnap.data();
 
-        // mailbox 기록 (공통 처리)
+        let { title, message, items } = req.body;
+
+        if (!Array.isArray(items)) {
+            const { content, count, type, itemID } = req.body;
+            title = title ?? req.body.title;
+            message = message ?? content ?? "";
+            const mappedItemID =
+                type === "coin"
+                ? CURRENCY_CREDIT_ID
+                : type === "ticket"
+                ? CURRENCY_TICKET_ID
+                : itemID || "unknown_item";
+            const mappedCount = typeof count === "number" ? count : 1;
+            items = [{ itemID: mappedItemID, count: mappedCount }];
+        }
+
+        const safeItems = (items || [])
+            .filter((i) => i && typeof i.count === "number" && i.count > 0 && typeof i.itemID === "string")
+            .map((i) => ({ itemID: i.itemID, count: i.count }));
+
+        if (!title || !message || safeItems.length === 0) {
+            return res.status(400).json({ message: "title, message, items는 필수입니다." });
+        }
+
         const mailId = uuidv4();
         const mailData = {
             title,
-            content,
-            count,
-            type,
-            image,
-            description,
-            time,
-            source: "이벤트",
-            date: new Date().toISOString()
+            message,
+            items: safeItems,
+            isClaimed: false,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
         };
+
         await userRef.collection("mailbox").doc(mailId).set(mailData);
 
-        // coin이나 ticket이면 유저 정보도 업데이트
-        if (type === "coin" || type === "ticket") {
-            const updateData = {};
-            if (type === "coin") updateData.coin = (userData.coin || 0) + count;
-            if (type === "ticket") updateData.ticket = (userData.ticket || 0) + count;
-            await userRef.update(updateData);
-            return res.json({ message: `${type === "coin" ? "골드" : "티켓"} 보상 수령 완료` });
-        }
-
-        res.json({ message: "이벤트 보상 전송 완료" });
+        res.json({ message: "우편 발송 완료", id: mailId });
     } catch (err) {
-        res.status(500).json({ message: "보상 수령 실패", error: err.message });
+        res.status(500).json({ message: "우편 발송 실패", error: err.message });
     }
 });
 
 
-// 상점 아이템 구매
+// 상점 아이템 구매(수정)
 app.post("/purchase", authenticateToken, async (req, res) => {
     const { item, type } = req.body;
-    try {
-        const userRef = db.collection("users").doc(req.user.uid);
-        const userSnap = await userRef.get();
-        if (!userSnap.exists) return res.status(404).json({ message: "사용자 없음" });
-        const userData = userSnap.data();
-        const cost = item.cost;
-        if (type === "web" && userData.ticket < cost) return res.status(400).json({ message: "티켓이 부족합니다." });
-        if (type === "game" && userData.coin < cost) return res.status(400).json({ message: "골드가 부족합니다." });
-        const updateData = {};
-        if (type === "web") updateData.ticket = userData.ticket - cost;
-        if (type === "game") updateData.coin = userData.coin - cost;
-        await userRef.update(updateData);
-        const mail = {
-        title: item.title,
-        content: `${type === "web" ? "웹상점" : "게임상점"}에서 구매한 아이템입니다.`,
-        source: type === "web" ? "웹상점" : "게임상점",
-        count: item.count,
-        date: new Date().toISOString()
-        };
-        await userRef.collection("mailbox").add(mail);
-        res.json({ message: "구매 완료" });
-    } catch (err) {
-        res.status(500).json({ message: "구매 실패", error: err.message });
-    }
-});
-
-
-// 플레이타임 저장
-app.post("/save-playtime", authenticateToken, async (req, res) => {
-    const { playtimeInSeconds } = req.body;
-
-    if (typeof playtimeInSeconds !== "number" || playtimeInSeconds < 0) {
-        return res.status(400).json({ message: "유효하지 않은 playtime 형식입니다." });
+    const cost = item?.cost;
+    if (typeof cost !== "number" || cost <= 0) {
+        return res.status(400).json({ message: "유효하지 않은 아이템 가격" });
     }
 
+    const userRef = db.collection("users").doc(req.user.uid);
     try {
-        await db.collection("users").doc(req.user.uid).update({playtime: playtimeInSeconds});
+        await db.runTransaction(async (tx) => {
+        const snap = await tx.get(userRef);
+        if (!snap.exists) throw new Error("NO_USER");
+        const user = snap.data() || {};
 
-        res.json({ message: "플레이타임 저장 완료" });
-    } catch (err) {
-        res.status(500).json({ message: "플레이타임 저장 실패", error: err.message });
-    }
-});
+        const have = (type === "web")
+            ? (user.ticket || 0)
+            : (user.items?.[CURRENCY_CREDIT_ID] || 0);
 
+        if (have < cost) throw new Error("INSUFFICIENT");
 
-
-// 세션 유지용 ping 측정
-app.post("/update-last-activity", authenticateToken, async (req, res) => {
-    try {
-        const { playtimeInSeconds } = req.body;
-
-        if (typeof playtimeInSeconds !== "number" || playtimeInSeconds < 0) {
-            return res.status(400).json({ message: "playtimeInSeconds는 유효한 숫자여야 합니다." });
+        if (type === "web") {
+            tx.update(userRef, { ticket: have - cost });
+        } else if (type === "game") {
+            tx.update(userRef, { [`items.${CURRENCY_CREDIT_ID}`]: have - cost });
+        } else {
+            throw new Error("BAD_TYPE");
         }
 
+        const mailRef = userRef.collection("mailbox").doc();
+        tx.set(mailRef, {
+            title: item.title || "구매 보상",
+            message: `${type === "web" ? "웹상점" : "게임상점"}에서 구매한 아이템입니다.`,
+            items: [{ itemID: item.id || item.itemID || "unknown_item", count: Number.isInteger(item.count) && item.count > 0 ? item.count : 1 }],
+            isClaimed: false,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        });
+
+        res.json({ message: "구매 완료(우편 발송)" });
+    } catch (e) {
+        if (e.message === "INSUFFICIENT") return res.status(400).json({ message: type === "web" ? "티켓이 부족합니다." : "크레딧이 부족합니다." });
+        if (e.message === "BAD_TYPE")    return res.status(400).json({ message: "유효하지 않은 구매 타입" });
+        if (e.message === "NO_USER")     return res.status(404).json({ message: "사용자 없음" });
+        res.status(500).json({ message: "구매 실패", error: e.message });
+    }
+});
+
+
+// 플레이타임 저장 (수정)
+app.post("/save-playtime", authenticateToken, async (req, res) => {
+    try {
         const userRef = db.collection("users").doc(req.user.uid);
-        const snapshot = await userRef.get();
-        const data = snapshot.data();
+        const snap = await userRef.get();
+        const data = snap.data() || {};
+        const playtimeInSeconds = typeof data.playtime === "number" ? data.playtime : 0;
 
-        const storedPlaytime = typeof data.playtime === "number" ? data.playtime : 0;
+        res.json({ message: "플레이타임은 읽기 전용입니다.", playtime: formatSeconds(playtimeInSeconds) });
+    } catch (err) {
+        res.status(500).json({ message: "플레이타임 조회 실패", error: err.message });
+    }
+});
 
-        const newPlaytime = Math.max(playtimeInSeconds, storedPlaytime); 
 
-        await userRef.update({playtime: newPlaytime, lastUpdatedAt: new Date().toISOString()});
 
-        res.json({ message: "활동 시간 갱신 완료" });
+// 세션 유지용 ping 측정 (수정)
+app.post("/update-last-activity", authenticateToken, async (req, res) => {
+    try {
+        const userRef = db.collection("users").doc(req.user.uid);
+        await userRef.update({ lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        res.json({ message: "활동 시간 갱신 완료(플레이타임 미변경)" });
     } catch (err) {
         res.status(500).json({ message: "갱신 실패", error: err.message });
     }
@@ -559,5 +540,5 @@ app.post("/update-last-activity", authenticateToken, async (req, res) => {
 
 // 서버 시작
 app.listen(PORT, () => {
-    console.log(`[${new Date().toISOString()}] 🚀 서버 실행 중: http://localhost:${PORT}`);
+    console.log(`[${new Date().toISOString()}] 서버 실행중 : http://localhost:${PORT}`);
 });

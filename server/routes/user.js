@@ -1,4 +1,5 @@
 const express = require("express");
+const admin = require("firebase-admin");
 const router = express.Router();
 const authenticateToken = require("../utils/authenticate");
 const upload = require("../utils/upload");
@@ -13,7 +14,7 @@ router.get("/check-name", async (req, res) => {
     try {
         const token = req.cookies.token;
         if (token) {
-            const decoded = jwt.verify(token, process.env.SECRET_KEY);
+            const decoded = jwt.verify(token, SECRET_KEY);
             uid = decoded.uid;
         }
     } catch (e) {}
@@ -39,10 +40,8 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
         const userRecord = await auth.getUser(uid);
         const providerId = userRecord.providerData[0]?.providerId || "unknown";
 
-        // 이름 수정
         if (req.body.name) updateData.name = req.body.name;
 
-        // 비밀번호 수정 (로컬 사용자만)
         if (req.body.password) {
             if (providerId !== "password") {
                 return res.status(400).json({ message: "소셜 로그인 사용자는 비밀번호를 수정할 수 없습니다." });
@@ -62,14 +61,12 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
             await auth.updateUser(uid, { password: req.body.password });
         }
 
-        // 기본 이미지로 변경 요청
         if (req.body.resetToDefault === "true") {
             const defaultImage = process.env.DEFAULT_PROFILE_IMAGE;
             if (!defaultImage) {
                 return res.status(500).json({ message: "기본 프로필 이미지가 설정되지 않았습니다." });
             }
 
-            // 이전 이미지 삭제
             const userSnapshot = await userRef.get();
             const previousImage = userSnapshot.data()?.profileImage;
             if (
@@ -81,14 +78,13 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
                 if (match && match[1]) {
                     const oldPath = decodeURIComponent(match[1]);
                     await bucket.file(oldPath).delete().catch((e) => {
-                        console.warn("[⚠️ 이미지 삭제 실패]", oldPath, e.message);
+                        console.warn("이미지 삭제 실패", oldPath, e.message);
                     });
                 }
             }
             updateData.profileImage = defaultImage;
 
         } else if (req.file && req.file.buffer && req.file.mimetype.startsWith("image/")) {
-            // 이전 이미지 삭제
             const userSnapshot = await userRef.get();
             const previousImage = userSnapshot.data()?.profileImage;
             if (
@@ -100,12 +96,11 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
                 if (match && match[1]) {
                     const oldPath = decodeURIComponent(match[1]);
                     await bucket.file(oldPath).delete().catch((e) => {
-                        console.warn("[⚠️ 이미지 삭제 실패]", oldPath, e.message);
+                        console.warn("이미지 삭제 실패", oldPath, e.message);
                     });
                 }
             }
 
-            // 새 이미지 업로드
             const filename = `profiles/${uid}-${Date.now()}.png`;
             const token = uuidv4();
             const blob = bucket.file(filename);
@@ -114,9 +109,9 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
                 metadata: {
                     contentType: req.file.mimetype,
                     metadata: {
-                        firebaseStorageDownloadTokens: token
-                    }
-                }
+                        firebaseStorageDownloadTokens: token,
+                    },
+                },
             });
 
             blobStream.end(req.file.buffer);
@@ -130,7 +125,6 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
             updateData.profileImage = imageUrl;
         }
 
-        // Firestore 업데이트
         if (Object.keys(updateData).length > 0) {
             await userRef.update(updateData);
         }
@@ -151,26 +145,21 @@ router.post("/delete-account", authenticateToken, async (req, res) => {
     try {
         const { uid, email } = req.user;
 
-        // 서브컬렉션 mailbox 전부 삭제
         const mailboxRef = db.collection("users").doc(uid).collection("mailbox");
         const mailboxSnapshot = await mailboxRef.get();
         const batch = db.batch();
         mailboxSnapshot.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
 
-        // 사용자 문서 삭제
         await db.collection("users").doc(uid).delete();
 
-        // 삭제 기록 저장
         await db.collection("deletedUsers").doc(uid).set({
             email,
-            deletedAt: new Date().toISOString()
+            deletedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 인증 계정 삭제
         await auth.deleteUser(uid);
 
-        // 쿠키 제거
         res.clearCookie("token");
         res.clearCookie("refreshToken");
 
