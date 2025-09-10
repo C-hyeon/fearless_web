@@ -1,6 +1,7 @@
 # 피어리스 [전공연구소모임 & 한국디지털콘텐츠학회 추계종합학술대회]
 
 ## Function
+
 1. Frontend: React / Backend: Node.js
 > - **React**의 경우 .jsx 기반의 **Vite** 프론트엔드 개발 도구 사용(추후 **.tsx** 전환 예정)
 > - **React-Hook**의 **useState**, **useEffect**, **useRef**, **useContext** 활용 데이터 상태관리
@@ -32,6 +33,7 @@
 > - 게임 플레이타임에 따른 웹 내 실시간 차등 보상 시스템 *(중간자: Cloud Firestore)*
 
 -----
+
 ## Unity Game
 
 ### Weapon(Skill)
