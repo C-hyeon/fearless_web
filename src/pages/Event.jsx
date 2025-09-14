@@ -17,7 +17,6 @@ const Event = () => {
     const [claimedTitles, setClaimedTitles] = useState([]);
     const [isClaiming, setIsClaiming] = useState(false);
 
-    // 1. 데이터 로딩
     useEffect(() => {
         if (hasFetched.current) return;
         hasFetched.current = true;
@@ -50,7 +49,6 @@ const Event = () => {
         fetchProtectedData();
     }, []);
 
-    // 2. 탭 복귀 시 토큰 갱신
     useEffect(() => {
         const onVisible = async () => {
             if (hasRefreshedRef.current) return;
@@ -133,9 +131,7 @@ const Event = () => {
                                     transition: "all 0.3s"
                                 }}
                             >
-                                {claimed && (
-                                    <div className="claimed-overlay">수령 완료</div>
-                                )}
+                                {claimed && (<div className="claimed-overlay">수령 완료</div>)}
                                 <div className="image-wrapper">
                                     <img src={event.image} alt={event.title} />
                                 </div>

@@ -128,7 +128,7 @@ const Header = () => {
         else if (score === 5) setPasswordStrength("strong");
     };
 
-    // 로컬 회원가입 시 비밀번호 보안등급 검증(대소문자 + 숫자 + 특수문자)
+    // 로컬 회원가입 시 비밀번호 보안등급 검증
     const checkPasswordStrength = () => {
         const password = signupForm.password;
 
@@ -308,7 +308,7 @@ const Header = () => {
         }
     };
 
-  // 우편함 열기
+    // 우편함
     const handleOpenMailbox = async () => {
         try {
             const res = await api.get("/mailbox");
@@ -342,40 +342,40 @@ const Header = () => {
                 <Modal isOpen={isModalOpen} onClose={handleClose}>
                     {showMailbox ? (
                         <>
-                        <h1 className="master_logo">FearLess</h1>
-                        <h2 className="mail_title">내 우편함</h2>
-                        {mailbox.length === 0 ? (
-                            <p>수신된 우편이 없습니다.</p>
-                        ) : (
-                            <table className="mailbox-table">
-                                <thead>
-                                    <tr>
-                                    <th>#</th>
-                                    <th>출처</th>
-                                    <th>이름</th>
-                                    <th>수량</th>
-                                    <th>날짜</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {mailbox.map((mail, idx) => {
-                                    const totalCount = Array.isArray(mail.items)
-                                        ? mail.items.reduce((acc, it) => acc + (Number(it?.count) || 0), 0)
-                                        : (mail.count ?? 1);
-                                    const when = tsToDate(mail.timestamp);
-                                    return (
-                                        <tr key={mail.id || idx}>
-                                        <td>{idx + 1}</td>
-                                        <td>{"시스템"}</td>
-                                        <td>{mail.title}</td>
-                                        <td>{totalCount}</td>
-                                        <td>{when ? when.toLocaleString() : "-"}</td>
+                            <h1 className="master_logo">FearLess</h1>
+                            <h2 className="mail_title">내 우편함</h2>
+                            {mailbox.length === 0 ? (
+                                <p>수신된 우편이 없습니다.</p>
+                            ) : (
+                                <table className="mailbox-table">
+                                    <thead>
+                                        <tr>
+                                        <th>#</th>
+                                        <th>출처</th>
+                                        <th>이름</th>
+                                        <th>수량</th>
+                                        <th>날짜</th>
                                         </tr>
-                                    );
-                                    })}
-                                </tbody>
-                            </table>
-                        )}
+                                    </thead>
+                                    <tbody>
+                                        {mailbox.map((mail, idx) => {
+                                        const totalCount = Array.isArray(mail.items)
+                                            ? mail.items.reduce((acc, it) => acc + (Number(it?.count) || 0), 0)
+                                            : (mail.count ?? 1);
+                                        const when = tsToDate(mail.timestamp);
+                                        return (
+                                            <tr key={mail.id || idx}>
+                                            <td>{idx + 1}</td>
+                                            <td>{"시스템"}</td>
+                                            <td>{mail.title}</td>
+                                            <td>{totalCount}</td>
+                                            <td>{when ? when.toLocaleString() : "-"}</td>
+                                            </tr>
+                                        );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
                         </>
                     ) : (
                         <>

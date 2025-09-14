@@ -17,9 +17,9 @@ const Store = () => {
     const [goldCount, setGoldCount] = useState(0);
     const hasFetched = useRef(false);
 
-    const handlePurchase = async (item, type) => {
+    const handlePurchase = async (item, source) => {
         try {
-            const res = await api.post("/purchase", { item, type });
+            const res = await api.post("/purchase", { item, source });
             alert(res.data.message);
 
             const statusRes = await api.get("/status");
@@ -84,11 +84,11 @@ const Store = () => {
                                 className="store-item"
                                 key={item.id || `web-${idx}`}
                                 onClick={() => {
-                                if (ticketCount >= item.cost) {
-                                    handlePurchase(item, "web");
-                                } else {
-                                    alert("티켓이 부족합니다.");
-                                }
+                                    if (ticketCount >= item.cost) {
+                                        handlePurchase(item, "web");
+                                    } else {
+                                        alert("티켓이 부족합니다.");
+                                    }
                                 }}
                             >
                                 <img src={item.image} alt={item.title} />
