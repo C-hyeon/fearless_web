@@ -3,6 +3,7 @@ const admin = require("firebase-admin");
 const router = express.Router();
 const { db } = require("../firebase");
 const authenticateToken = require("../utils/authenticate");
+const formatSeconds = require("../utils/formatSeconds");
 
 // 웹 로그인 플레이타임 저장
 router.post("/save-playtime", authenticateToken, async (req, res) => {

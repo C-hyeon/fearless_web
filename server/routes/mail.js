@@ -80,13 +80,14 @@ router.post("/mailbox", authenticateToken, async (req, res) => {
             const { content, count, type, itemID } = req.body;
             title = title ?? req.body.title;
             message = message ?? content ?? "";
-            const mappedItemID =
-                type === "coin"
-                ? CURRENCY_CREDIT_ID
-                : type === "ticket"
-                ? CURRENCY_TICKET_ID
-                : itemID || "unknown_item";
-            const mappedCount = typeof count === "number" ? count : 1;
+            let mappedItemID;
+
+            if (type === "coin") mappedItemID = CURRENCY_CREDIT_ID;
+            else if (type === "ticket") mappedItemID = CURRENCY_TICKET_ID;
+            else if (typeof type === "string" && type.trim()) mappedItemID = type.trim();
+            else mappedItemID = itemID || "unknown_item";
+
+            const mappedCount = Number.isInteger(count) && count > 0 ? count : 1;
             items = [{ itemID: mappedItemID, count: mappedCount }];
         }
 
@@ -109,30 +110,35 @@ router.post("/mailbox", authenticateToken, async (req, res) => {
             message,
             items: safeItems,
             isClaimed: isCurrencyOnly,
+            isDeleted: false,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
         };
 
         await db.runTransaction(async (tx) => {
-        const snap = await tx.get(userRef);
-        if (!snap.exists) {
-            tx.set(userRef, {
-            ticket: 0,
-            items: { [CURRENCY_CREDIT_ID]: 0 },
-            lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-        }
+            const snap = await tx.get(userRef);
+            if (!snap.exists) {
+                tx.set(
+                    userRef,
+                    {
+                        ticket: 0,
+                        items: { [CURRENCY_CREDIT_ID]: 0 },
+                        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+            }
 
-        const mailRef = userRef.collection("mailbox").doc(mailId);
-        tx.set(mailRef, mailData);
+            const mailRef = userRef.collection("mailbox").doc(mailId);
+            tx.set(mailRef, mailData);
 
-        const inc = {};
-        if (creditInc > 0) inc[`items.${CURRENCY_CREDIT_ID}`] = admin.firestore.FieldValue.increment(creditInc);
-        if (ticketInc > 0) inc["ticket"] = admin.firestore.FieldValue.increment(ticketInc);
-        if (Object.keys(inc).length) {
-            tx.update(userRef, inc);
-        }
+            const inc = {};
+            if (creditInc > 0) inc[`items.${CURRENCY_CREDIT_ID}`] = admin.firestore.FieldValue.increment(creditInc);
+            if (ticketInc > 0) inc["ticket"] = admin.firestore.FieldValue.increment(ticketInc);
+            if (Object.keys(inc).length) {
+                tx.update(userRef, inc);
+            }
 
-        tx.update(userRef, { lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp() });
+            tx.update(userRef, { lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp() });
         });
 
         res.json({ message: "우편 발송 완료(통화 반영됨)", id: mailId });

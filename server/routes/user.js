@@ -1,10 +1,13 @@
 const express = require("express");
 const admin = require("firebase-admin");
 const router = express.Router();
+const jwt = require("jsonwebtoken"); 
 const authenticateToken = require("../utils/authenticate");
 const upload = require("../utils/upload");
 const { v4: uuidv4 } = require("uuid");
 const { db, auth, bucket } = require("../firebase");
+
+const SECRET_KEY = process.env.SECRET_KEY;
 
 // 로컬 회원가입 + 프로필 수정 시 이름/닉네임 중복확인
 router.get("/check-name", async (req, res) => {
