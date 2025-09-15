@@ -5,7 +5,6 @@ const { db } = require("../firebase");
 const authenticateToken = require("../utils/authenticate");
 
 const CURRENCY_CREDIT_ID = "currency_credit";
-const CURRENCY_TICKET_ID = "currency_ticket";
 
 function firstTruthy(...vals) {
     for (const v of vals) if (typeof v === "string" && v.trim()) return v.trim();
