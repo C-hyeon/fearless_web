@@ -56,7 +56,6 @@
     }
 }
 
-// 회원 로그인/회원가입/프로필 모달창
 .signup_input-group,
 .update_input-group {
     display: flex;
@@ -172,6 +171,7 @@
 
 .verify_btn,
 .signout_btn,
+.gameinfo_btn,
 .profileupdate_btn,
 .deleteaccount_btn,
 .resetimg_btn {
@@ -202,7 +202,6 @@
     margin-top: 1rem;
 }
 
-// 프로필 모달창
 .profile_content {
     display: flex;
     justify-content: center;
@@ -255,7 +254,126 @@
     }
 }
 
-// 고정된 항목 블러처리
+.gameinfo_panel {
+    overflow: hidden;
+    margin-top: 1rem;
+
+    .gameinfo_head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 0.6rem;
+
+        .gameinfo_title {
+            font-family: Nesting.$main_font_Bold;
+            font-size: 1.1rem;
+        }
+        .gameinfo_count {
+            font-family: Nesting.$main_font_Light;
+            font-size: 0.95rem;
+            color: #777;
+        }
+    }
+
+    .weapons_frame {
+        width: 100%;
+        height: 260px;
+        border-radius: 20px;
+        background: #f2f2f2;
+        padding: 14px;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .weapons_scroller {
+        height: 100%;
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        padding-bottom: 8px;
+
+        &::-webkit-scrollbar { height: 8px; }
+        &::-webkit-scrollbar-track { background: #e7e7e7; border-radius: 8px; }
+        &::-webkit-scrollbar-thumb { background: #c9c9c9; border-radius: 8px; }
+    }
+
+    .weapon_card {
+        position: relative;
+        flex: 0 0 180px;
+        aspect-ratio: 1 / 1;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        overflow: hidden;
+        scroll-snap-align: start;
+        display: grid;
+        place-items: center;
+
+        .weapon_img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            pointer-events: none;
+            user-select: none;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.18));
+        }
+
+        .weapon_fallback {
+            font-family: Nesting.$main_font_Light;
+            color: #333;
+            padding: 0 10px;
+            text-align: center;
+        }
+
+        .weapon_overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.65);
+            color: white;
+            opacity: 0;
+            transition: opacity .25s ease-in-out;
+
+            .weapon_overlay_name {
+                font-family: Nesting.$main_font_Bold;
+                letter-spacing: 0.3px;
+            }
+            .weapon_overlay_levels {
+                display: flex;
+                gap: 8px;
+                .level_chip {
+                    font-family: Nesting.$main_font_Light;
+                    font-size: 0.85rem;
+                    padding: 4px 10px;
+                    border-radius: 999px;
+                    background: rgba(255,255,255,0.15);
+                    border: 1px solid rgba(255,255,255,0.35);
+                    backdrop-filter: blur(2px);
+                }
+            }
+        }
+
+        &:hover .weapon_overlay { opacity: 1; }
+    }
+
+    .empty_weapons {
+        width: 100%;
+        height: 100%;
+        border: 2px dashed #c9c9c9;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        color: #777;
+        font-family: Nesting.$main_font_Light;
+    }
+}
+
 .blurred {
     filter: blur(0.5px);
     pointer-events: none;
@@ -264,7 +382,6 @@
     color: #666666;
 }
 
-// 우편함 테이블 스타일
 .mailbox-table {
     width: 100%;
     border-collapse: collapse;

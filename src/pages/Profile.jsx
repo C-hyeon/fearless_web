@@ -1,16 +1,38 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import "../styles/Modal.scss";
 import "../styles/Header.scss";
+import cards from "../data/cards.json";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const Profile = ({ user, onSignout, onClose, onDelete }) => {
     const [showUpdateProfile, setShowUpdateProfile] = useState(false);
+    const [showGameInfo, setShowGameInfo] = useState(false);
     const [updateProfile, setUpdateProfile] = useState({name: user.name, password: ""});
     const [validationState, setValidationState] = useState({nameChecked: true, passwordChecked: true});
     const [previewImage, setPreviewImage] = useState(user.profileImage);
     const [resetToDefault, setResetToDefault] = useState(false);
+
+    const cardMap = useMemo(() => {
+        const map = new Map();
+        (cards?.weapons ?? []).forEach(w => map.set(w.wpId, w));
+        return map;
+    }, []);
+
+    const ownedWeapons = useMemo(() => {
+        const base = Array.isArray(user?.weapons) ? user.weapons : [];
+        return base.map(w => {
+            const meta = cardMap.get(w.weaponId);
+            return {
+                weaponId: w.weaponId,
+                enhanceLevel: w.enhanceLevel ?? 0,
+                breakthroughLevel: w.breakthroughLevel ?? 0,
+                title: meta?.title ?? w.weaponId,
+                image: meta?.image ?? ""
+            };
+        });
+    }, [user?.weapons, cardMap]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -138,31 +160,76 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                     <div className="profile_info">
                         <h2 className="name">{user.name}</h2>
                         <div className="status">
-                        <div className="status_row">
-                            <span>웹상점티켓</span>
-                            <span>{user.ticket ?? 0}</span>
-                        </div>
-                        <hr className="status_divider" />
-                        <div className="status_row">
-                            <span>골드</span>
-                            <span>{user.items?.currency_credit ?? 0}</span>
-                        </div>
+                            <div className="status_row">
+                                <span>웹상점티켓</span>
+                                <span>{user.ticket ?? 0}</span>
+                            </div>
+                            <hr className="status_divider" />
+                            <div className="status_row">
+                                <span>골드</span>
+                                <span>{user.items?.currency_credit ?? 0}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <button className="gameinfo_btn" onClick={() => setShowGameInfo(v => !v)}>게임정보</button>
                 <button className="profileupdate_btn" onClick={() => setShowUpdateProfile(prev => !prev)}>정보수정</button>
                 <button className="signout_btn" onClick={onSignout}>로그아웃</button>
                 <button className="deleteaccount_btn" onClick={onDelete}>회원탈퇴</button>
+                
+                <AnimatePresence initial={false}>
+                    {showGameInfo && (
+                        <motion.div
+                            className="gameinfo_panel"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                            <div className="gameinfo_head">
+                                <span className="gameinfo_title">보유 무기</span>
+                                <span className="gameinfo_count">{ownedWeapons.length}개</span>
+                            </div>
+
+                            <div className="weapons_frame">
+                                {ownedWeapons.length === 0 ? (
+                                    <div className="empty_weapons">보유 무기가 없습니다.</div>
+                                ) : (
+                                    <div className="weapons_scroller">
+                                        {ownedWeapons.map(w => (
+                                            <div className="weapon_card" key={w.weaponId}>
+                                                {w.image ? (
+                                                    <img className="weapon_img" src={w.image} alt={w.title} />
+                                                ) : (
+                                                    <div className="weapon_fallback">{w.title}</div>
+                                                )}
+
+                                                {/* Hover Overlay */}
+                                                <div className="weapon_overlay">
+                                                    <div className="weapon_overlay_name">{w.title}</div>
+                                                    <div className="weapon_overlay_levels">
+                                                        <span className="level_chip">강화 +{w.enhanceLevel}</span>
+                                                        <span className="level_chip">돌파 {w.breakthroughLevel}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <AnimatePresence>
                     {showUpdateProfile && (
                         <motion.div
-                        className="update_form"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.4 }}
+                            className="update_form"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.4 }}
                         >
                             <h2 className="update_title">회원정보 수정</h2>
 
@@ -174,7 +241,6 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                                 const file = e.target.files[0];
                                 if (!file) return;
 
-                                // [1] 이미지가 아닌 경우 차단
                                 if (!file.type.startsWith("image/")) {
                                     alert("이미지 파일만 업로드 가능합니다.");
                                     return;
