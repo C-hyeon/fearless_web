@@ -33,3 +33,4 @@ firebaseDocument.json
 server/.env
 server/serviceAccountKey.json
 server/public/
+server/test.js
