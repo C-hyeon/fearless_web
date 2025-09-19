@@ -9,6 +9,7 @@ const userRoutes = require("./routes/user");
 const mailRoutes = require("./routes/mail");
 const itemRoutes = require("./routes/item");
 const playtimeRoutes = require("./routes/playtime");
+const noticeRoutes = require("./routes/notice");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +23,7 @@ app.use(userRoutes);
 app.use(mailRoutes);
 app.use(itemRoutes);
 app.use(playtimeRoutes);
+app.use(noticeRoutes);
 
 app.listen(PORT, () => {
     console.log(`[${new Date().toISOString()}] 서버 실행중 : http://localhost:${PORT}`);
