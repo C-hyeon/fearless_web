@@ -97,7 +97,10 @@ router.get("/status", authenticateToken, async (req, res) => {
         if (!doc.exists) return res.status(404).json({ loggedIn: false });
         const user = doc.data();
         if (!user.profileImage) user.profileImage = DEFAULT_PROFILE_IMAGE;
-        res.json({ loggedIn: true, user });
+        res.json({
+            loggedIn: true,
+            user: { uid: req.user.uid, role: req.user.role || "user", ...user },
+        });
     } catch {
         res.status(500).json({ loggedIn: false });
     }
