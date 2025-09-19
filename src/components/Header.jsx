@@ -5,6 +5,7 @@ import { FaUserCircle } from "react-icons/fa";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { FcGoogle } from "react-icons/fc";
 import { CiMail } from "react-icons/ci";
+import { TbWorld } from "react-icons/tb";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { auth } from "../firebase";
@@ -329,14 +330,15 @@ const Header = () => {
                 <Link to="/event">이벤트</Link>
                 <Link to="/store">상점</Link>
                 <span className="download">바로 다운로드</span>
+                <Link to="/notice" className="global-icon"><TbWorld/></Link>
 
                 {users ? (
-                <>
-                    <span className="mail-icon" onClick={handleOpenMailbox}><CiMail /></span>
-                    <span className="user-icon" onClick={() => setShowProfile(true)}><FaRegCircleUser /></span>
-                </>
+                    <>
+                        <span className="mail-icon" onClick={handleOpenMailbox}><CiMail /></span>
+                        <span className="user-icon" onClick={() => setShowProfile(true)}><FaRegCircleUser /></span>
+                    </>
                 ) : (
-                <><span className="user-icon" onClick={handleOpen}><FaUserCircle /></span></>
+                    <><span className="user-icon" onClick={handleOpen}><FaUserCircle /></span></>
                 )}
 
                 <Modal isOpen={isModalOpen} onClose={handleClose}>

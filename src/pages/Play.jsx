@@ -22,7 +22,6 @@ const Play = () => {
     return (
         <Wrapper>
             <div className="play_container">
-                {/* 게임 간략 소개 */}
                 <div className="game_intro">
                     <div className="text_content">
                         <h2>FearLess</h2>
@@ -36,7 +35,6 @@ const Play = () => {
                     <div className="intro_image"/>
                 </div>
 
-                {/* 스테이지 슬라이더 */}
                 <div className="slider_wrapper">
                     <button className="arrow left" onClick={() => prev(stageCards, setCurrentStage)}>←</button>
                     <div className="carousel_track">
@@ -63,7 +61,6 @@ const Play = () => {
                     <button className="arrow right" onClick={() => next(stageCards, setCurrentStage)}>→</button>
                 </div>
 
-                {/* 무기 슬라이더 */}
                 <div className="slider_wrapper">
                     <button className="arrow left" onClick={() => prev(weaponCards, setCurrentWeapon)}>←</button>
                     <div className="carousel_track">
