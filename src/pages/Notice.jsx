@@ -6,8 +6,8 @@ import Wrapper from "../components/Wrapper";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const ENDPOINTS = {
-    LIST: `${API_BASE}/view_ntc`,
-    CREATE: `${API_BASE}/create_ntc`,
+    LIST: `${API_BASE}/view_notice`,
+    CREATE: `${API_BASE}/create_notice`,
     DETAIL: (id) => `${API_BASE}/${id}`,
     STATUS: `${API_BASE}/status`,
 };
@@ -152,6 +152,32 @@ const Notice = () => {
             alert("상세 요청 중 네트워크 오류가 발생했습니다.");
         }
     };
+
+    const openDetailById = async(id) => {
+        try {
+            const res = await fetch(ENDPOINTS.DETAIL(String(id)), { credentials: "include" });
+            if (!res.ok) {
+                if (res.status === 404) alert("글이 존재하지 않거나 삭제되었습니다.");
+                else alert("상세를 불러오지 못했습니다.");
+                return;
+            }
+            const data = await res.json();
+            setDetail(data);
+            setOpenDetail(true);
+            setPosts((prev) => prev.map((p) => (String(p.id) === String(id) ? { ...p, views: (p.views || 0) + 1 } : p)));
+        } catch {
+            alert("상세 요청 중 네트워크 오류가 발생했습니다.");
+        }
+    };
+
+    useEffect(() => {
+        const handler = (e) => {
+            const id = e?.detail?.id;
+            if (id) openDetailById(id);
+        };
+        window.addEventListener("open-notice", handler);
+        return () => window.removeEventListener("open-notice", handler);
+    }, []);
 
     const isOwner = useMemo(() => {
         if (!detail?.userId || !me?.uid) return false;
