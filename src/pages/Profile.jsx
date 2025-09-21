@@ -1,14 +1,40 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { LuMessageSquareText } from "react-icons/lu";
 import "../styles/Modal.scss";
 import "../styles/Header.scss";
 import cards from "../data/cards.json";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
+const toDate = (v) => {
+    if (!v) return null;
+    if (typeof v?.toDate === "function") return v.toDate();
+    if (v?._seconds !== undefined) return new Date(v._seconds * 1000);
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+const formatDateShort = (v) => {
+    const d = toDate(v);
+    if (!d) return "-";
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${yy}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
+};
+
 const Profile = ({ user, onSignout, onClose, onDelete }) => {
     const [showUpdateProfile, setShowUpdateProfile] = useState(false);
     const [showGameInfo, setShowGameInfo] = useState(false);
+
+    const [showMyPosts, setShowMyPosts] = useState(false);
+    const [myPosts, setMyPosts] = useState([]);
+    const [myLoading, setMyLoading] = useState(false);
+    const [myHasMore, setMyHasMore] = useState(true);
+    const [myCursor, setMyCursor] = useState(null);
+    const myFirstLoadedRef = useRef(false); 
+
     const [updateProfile, setUpdateProfile] = useState({name: user.name, password: ""});
     const [validationState, setValidationState] = useState({nameChecked: true, passwordChecked: true});
     const [previewImage, setPreviewImage] = useState(user.profileImage);
@@ -33,6 +59,30 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
             };
         });
     }, [user?.weapons, cardMap]);
+
+    const fetchMyPosts = async (reset = false) => {
+        try {
+            setMyLoading(true);
+            const params = new URLSearchParams();
+            params.set("limit", "20");
+            if (!reset && myCursor) params.set("cursor", String(myCursor));
+            const res = await fetch(`${API_BASE}/my_notice?${params.toString()}`, { credentials: "include" });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
+            const items = Array.isArray(data.items) ? data.items : [];
+            const next = data.nextCursor ?? null;
+            setMyPosts((prev) => (reset ? items : [...prev, ...items]));
+            setMyCursor(next);
+            setMyHasMore(Boolean(next));
+        } catch {} finally {
+            setMyLoading(false);
+        }
+    };
+
+    const openNoticeFromProfile = (id) => {
+        window.dispatchEvent(new CustomEvent("open-notice", { detail: { id } }));
+        onClose?.();
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -134,6 +184,31 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
 
     if (!user) return null;
 
+     const openMyPosts = () => {
+        const willOpen = !showMyPosts;
+        setShowMyPosts(willOpen);
+        setShowGameInfo(false);
+        setShowUpdateProfile(false);
+        if (willOpen && !myFirstLoadedRef.current) {
+            myFirstLoadedRef.current = true;
+            fetchMyPosts(true);
+        }
+    };
+
+    const openGameInfo = () => {
+        const willOpen = !showGameInfo;
+        setShowGameInfo(willOpen);
+        setShowMyPosts(false);
+        setShowUpdateProfile(false);
+    };
+
+    const openUpdateProfile = () => {
+        const willOpen = !showUpdateProfile;
+        setShowUpdateProfile(willOpen);
+        setShowMyPosts(false);
+        setShowGameInfo(false);
+    };
+
     return (
         <div className="overlay">
             <motion.div
@@ -173,11 +248,55 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                     </div>
                 </div>
 
-                <button className="gameinfo_btn" onClick={() => setShowGameInfo(v => !v)}>게임정보</button>
-                <button className="profileupdate_btn" onClick={() => setShowUpdateProfile(prev => !prev)}>정보수정</button>
+                <button className="myposts_btn" onClick={openMyPosts}>
+                    <LuMessageSquareText size={15} />
+                </button>
+                <button className="gameinfo_btn" onClick={openGameInfo}>게임정보</button>
+                <button className="profileupdate_btn" onClick={openUpdateProfile}>정보수정</button>
                 <button className="signout_btn" onClick={onSignout}>로그아웃</button>
                 <button className="deleteaccount_btn" onClick={onDelete}>회원탈퇴</button>
                 
+                <AnimatePresence initial={false}>
+                    {showMyPosts && (
+                        <motion.div
+                            className="myposts_panel"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                            <div className="myposts_thead">
+                                <div className="cell num">번호</div>
+                                <div className="cell title">제목</div>
+                                <div className="cell date">작성일자</div>
+                            </div>
+
+                            <div className="myposts_tbody">
+                                {myLoading && <div className="myposts_loading">불러오는 중…</div>}
+
+                                {!myLoading && myPosts.length === 0 && (
+                                <div className="myposts_empty">작성한 게시글이 없습니다.</div>
+                                )}
+
+                                {!myLoading &&
+                                    myPosts.map((p, idx) => (
+                                        <div key={p.id} className="myposts_row" onClick={() => openNoticeFromProfile(p.id)}>
+                                            <div className="cell num">{myPosts.length - idx}</div>
+                                            <div className="cell title">{p.title}</div>
+                                            <div className="cell date">{formatDateShort(p.dateTime)}</div>
+                                        </div>
+                                    ))
+                                }
+                                {myHasMore && !myLoading && (
+                                    <div className="myposts_more">
+                                        <button className="notice_btn" onClick={() => fetchMyPosts(false)}>더 보기</button>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 <AnimatePresence initial={false}>
                     {showGameInfo && (
                         <motion.div

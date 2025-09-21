@@ -175,7 +175,8 @@
 .gameinfo_btn,
 .profileupdate_btn,
 .deleteaccount_btn,
-.resetimg_btn {
+.resetimg_btn,
+.myposts_btn {
     font-family: Nesting.$main_font_Light;
     background: Nesting.$black;
     color: Nesting.$white;
@@ -252,6 +253,69 @@
                 border-top: 2px solid Nesting.$white;
             }
         }
+    }
+}
+
+.myposts_panel {
+    overflow: hidden;
+    margin-top: 10px;
+    border: 1px solid #d7d7d7;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.myposts_thead,
+.myposts_row {
+    display: grid;
+    grid-template-columns: 100px 1fr 200px;
+    align-items: center;
+}
+
+.myposts_thead {
+    padding: 12px;
+    background: #3b3b3b;
+    color: #ffffff;
+    font-family: Nesting.$main_font_Bold;
+    border-bottom: 1px solid #2a2a2a;
+    .cell {
+        text-align: center;
+    }
+}
+
+.myposts_tbody {
+    .myposts_loading,
+    .myposts_empty {
+        padding: 18px;
+        text-align: center;
+        color: #7a7a7a;
+    }
+
+    .myposts_row {
+        font-family: Nesting.$main_font_Light;
+        padding: 12px;
+        border-bottom: 1px solid #e8e8e8;
+        background: #f6f6f6;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+
+        &:nth-child(even) {background: #eeeeee;}
+        &:hover {background: #e5e5e5;}
+
+        .cell {
+            &.num, &.date { text-align: center; }
+            &.title {
+                text-align: left;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+    }
+
+    .myposts_more {
+        display: flex;
+        justify-content: center;
+        padding: 10px;
     }
 }
 
