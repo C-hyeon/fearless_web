@@ -30,6 +30,9 @@
 6. 게임 자유게시판 시스템
 > - 로그인 X : 게시판 목록 확인 및 상세보기 기능
 > - 로그인 O : 게시판 목록 확인 및 상세보기, **게시글 추가, 본인 게시글 수정 및 삭제** 기능
+> - 사용자 본인이 작성한 게시글의 경우 사용자 프로필 Modal 창에서 확인 가능
+>> - **게시판 페이지**: *notice Collection* / **내 게시글**: *users Collection - myNotice Collection*
+> - 사용자 정보(이름) 수정 시 본인이 작성한 게시글의 **작성자도 변경** / 회원탈퇴 시 본인이 작성한 **게시글도 삭제**
 
 7. Unity 게임 - 웹 통합 시스템
 ![게임-웹 아키텍처](https://github.com/C-hyeon/fearless_web/blob/main/Architecture.png)
