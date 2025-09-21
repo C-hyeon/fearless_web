@@ -30,7 +30,7 @@ function tsToMillis(v) {
 }
 
 // 게시글 목록 조회
-router.get("/view_ntc", async (req, res) => {
+router.get("/view_notice", async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit || "20", 10), 50);
         const cursorMillis = req.query.cursor ? Number(req.query.cursor) : null;
@@ -51,7 +51,7 @@ router.get("/view_ntc", async (req, res) => {
 });
 
 // 게시글 추가
-router.post("/create_ntc", authenticateToken, async (req, res) => {
+router.post("/create_notice", authenticateToken, async (req, res) => {
     const { title, contents } = req.body || {};
     if (!title?.trim() || !contents?.trim()) {
         return res.status(400).json({ message: "Invalid payload" });
@@ -82,6 +82,30 @@ router.post("/create_ntc", authenticateToken, async (req, res) => {
         res.status(201).json({ message: "created", id: noticeRef.id });
     } catch (e) {
         res.status(500).json({ message: "Failed to create" });
+    }
+});
+
+// 내 게시글 목록 조회
+router.get("/my_notice", authenticateToken, async (req, res) => {
+    try {
+        const uid = req.user?.uid;
+        if (!uid) return res.status(401).json({ message: "Unauthorized" });
+
+        const limit = Math.min(parseInt(req.query.limit || "20", 10), 50);
+        const cursorMillis = req.query.cursor ? Number(req.query.cursor) : null;
+
+        let q = db.collection("users").doc(uid).collection("myNotice").orderBy("dateTime", "desc").limit(limit);
+
+        if (cursorMillis) { q = q.startAfter(new Date(cursorMillis)); }
+
+        const snap = await q.get();
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const last = items[items.length - 1];
+        const nextCursor = last?.dateTime ? tsToMillis(last.dateTime) : null;
+
+        res.json({ items, nextCursor });
+    } catch (e) {
+        res.status(500).json({ message: "Failed to fetch my notices" });
     }
 });
 
