@@ -8,6 +8,42 @@ const { v4: uuidv4 } = require("uuid");
 const { db, auth, bucket } = require("../firebase");
 
 const SECRET_KEY = process.env.SECRET_KEY;
+const NOTICE_COL = "notice";
+
+// 대량 문서 삭제 쿼리 함수 (300개씩 끊어서 삭제)
+async function deleteByQuery(query, pageSize = 300) {
+    while (true) {
+        const snap = await query.limit(pageSize).get();
+        if (snap.empty) break;
+        const batch = db.batch();
+        snap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+    }
+}
+
+// 대량 문서 업데이트 쿼리 함수 (500개 이하 커밋)
+async function updateAllByQuery(query, payload, chunkSize = 450) {
+    const snap = await query.get();
+    if (snap.empty) return;
+
+    let batch = db.batch();
+    let count = 0;
+    const commits = [];
+
+    for (const doc of snap.docs) {
+        batch.update(doc.ref, payload);
+        count++;
+        if (count >= chunkSize) {commits.push(batch.commit()); batch = db.batch(); count = 0;}
+    }
+    if (count > 0) commits.push(batch.commit());
+    await Promise.all(commits);
+}
+
+// 이름 변경 시 게시물 작성자 반영
+async function propagateUserName(uid, newName) {
+    await updateAllByQuery(db.collection(NOTICE_COL).where("userId", "==", uid), { userName: newName });
+    await updateAllByQuery(db.collection("users").doc(uid).collection("myNotice"), { userName: newName });
+}
 
 // 로컬 회원가입 + 프로필 수정 시 이름/닉네임 중복확인
 router.get("/check-name", async (req, res) => {
@@ -42,6 +78,8 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
         const updateData = {};
         const userRecord = await auth.getUser(uid);
         const providerId = userRecord.providerData[0]?.providerId || "unknown";
+        const beforeSnap = await userRef.get();
+        const prevName = beforeSnap.data()?.name || "";
 
         if (req.body.name) updateData.name = req.body.name;
 
@@ -132,6 +170,12 @@ router.post("/update-profile", authenticateToken, upload.single("profileImage"),
             await userRef.update(updateData);
         }
 
+        if (
+            typeof updateData.name === "string" &&
+            updateData.name.trim() &&
+            updateData.name.trim() !== prevName
+        ) {await propagateUserName(uid, updateData.name.trim());}
+
         res.json({
             message: "회원정보가 성공적으로 수정되었습니다.",
             profileImage: updateData.profileImage
@@ -148,19 +192,11 @@ router.post("/delete-account", authenticateToken, async (req, res) => {
     try {
         const { uid, email } = req.user;
 
-        const mailboxRef = db.collection("users").doc(uid).collection("mailbox");
-        const mailboxSnapshot = await mailboxRef.get();
-        const batch = db.batch();
-        mailboxSnapshot.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-
+        await deleteByQuery(db.collection("users").doc(uid).collection("mailbox"));
+        await deleteByQuery(db.collection("users").doc(uid).collection("myNotice"));
+        await deleteByQuery(db.collection(NOTICE_COL).where("userId", "==", uid));
         await db.collection("users").doc(uid).delete();
-
-        await db.collection("deletedUsers").doc(uid).set({
-            email,
-            deletedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-
+        await db.collection("deletedUsers").doc(uid).set({email, deletedAt: admin.firestore.FieldValue.serverTimestamp(),});
         await auth.deleteUser(uid);
 
         res.clearCookie("token");
