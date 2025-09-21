@@ -60,16 +60,26 @@ router.post("/create_ntc", authenticateToken, async (req, res) => {
     try {
         const uid = req.user?.uid || null;
         const displayName = await resolveDisplayName(req);
+        if (!uid) return res.status(401).json({ message: "Unauthorized" });
 
-        await db.collection(NOTICE_COL).add({
-            title: title.trim(),
-            contents: contents.trim(),
-            userId: uid,
-            userName: displayName,
-            dateTime: FieldValue.serverTimestamp(),
-            views: 0,
-        });
-        res.status(201).json({ message: "created" });
+        const noticeRef = db.collection(NOTICE_COL).doc();
+        const myRef = db.collection("users").doc(uid).collection("myNotice").doc(noticeRef.id);
+
+        const payload = {
+        title: title.trim(),
+        contents: contents.trim(),
+        userId: uid,
+        userName: displayName,
+        dateTime: FieldValue.serverTimestamp(),
+        views: 0,
+        };
+
+        const batch = db.batch();
+        batch.set(noticeRef, payload);
+        batch.set(myRef, payload);
+        await batch.commit();
+
+        res.status(201).json({ message: "created", id: noticeRef.id });
     } catch (e) {
         res.status(500).json({ message: "Failed to create" });
     }
@@ -79,13 +89,26 @@ router.post("/create_ntc", authenticateToken, async (req, res) => {
 router.get("/:id", async (req, res) => {
     const id = String(req.params.id);
     try {
-        const ref = db.collection(NOTICE_COL).doc(id);
-        await ref.update({ views: FieldValue.increment(1) }).catch(() => {});
-        const snap = await ref.get();
-        if (!snap.exists) return res.status(404).json({ message: "Not found" });
+        const result = await db.runTransaction(async (tx) => {
+            const ref = db.collection(NOTICE_COL).doc(id);
+            const snap = await tx.get(ref);
+            if (!snap.exists) return null;
 
-        const data = snap.data();
-        res.json({ id: snap.id, ...data, views: (data.views || 0) + 1 });
+            const post = snap.data();
+
+            tx.update(ref, { views: admin.firestore.FieldValue.increment(1) });
+
+            if (post.userId) {
+                const myRef = db.collection("users").doc(post.userId).collection("myNotice").doc(id);
+                tx.set(myRef, { ...post, views: admin.firestore.FieldValue.increment(1) }, { merge: true });
+            }
+            return { id: snap.id, post };
+        });
+
+        if (!result) return res.status(404).json({ message: "Not found" });
+
+        const { id: docId, post } = result;
+        res.json({ id: docId, ...post, views: (post.views || 0) + 1 });
     } catch (e) {
         res.status(500).json({ message: "Failed to fetch" });
     }
@@ -110,7 +133,16 @@ router.patch("/:id", authenticateToken, async (req, res) => {
         if (contents?.trim()) payload.contents = contents.trim();
         if (!Object.keys(payload).length) return res.status(400).json({ message: "No changes" });
 
-        await ref.update(payload);
+        const batch = db.batch();
+        batch.update(ref, payload);
+        const myRef = db
+        .collection("users")
+        .doc(post.userId)
+        .collection("myNotice")
+        .doc(id);
+        batch.set(myRef, payload, { merge: true });
+        await batch.commit();
+
         res.json({ message: "updated" });
     } catch (e) {
         res.status(500).json({ message: "Failed to update" });
@@ -130,7 +162,16 @@ router.delete("/:id", authenticateToken, async (req, res) => {
         const isAdmin = req.user?.role === "admin";
         if (!(isOwner || isAdmin)) return res.status(403).json({ message: "Forbidden" });
 
-        await ref.delete();
+        const batch = db.batch();
+        batch.delete(ref);
+        const myRef = db
+        .collection("users")
+        .doc(post.userId)
+        .collection("myNotice")
+        .doc(id);
+        batch.delete(myRef);
+        await batch.commit();
+
         res.json({ message: "deleted" });
     } catch (e) {
         res.status(500).json({ message: "Failed to delete" });
