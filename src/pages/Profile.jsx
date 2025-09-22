@@ -33,7 +33,10 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
     const [myLoading, setMyLoading] = useState(false);
     const [myHasMore, setMyHasMore] = useState(true);
     const [myCursor, setMyCursor] = useState(null);
-    const myFirstLoadedRef = useRef(false); 
+    const myFirstLoadedRef = useRef(false);
+
+    const [myComments, setMyComments] = useState([]);
+    const [myCommentsLoading, setMyCommentsLoading] = useState(false);
 
     const [updateProfile, setUpdateProfile] = useState({name: user.name, password: ""});
     const [validationState, setValidationState] = useState({nameChecked: true, passwordChecked: true});
@@ -65,17 +68,32 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
             setMyLoading(true);
             const params = new URLSearchParams();
             params.set("limit", "20");
-            if (!reset && myCursor) params.set("cursor", String(myCursor));
             const res = await fetch(`${API_BASE}/my_notice?${params.toString()}`, { credentials: "include" });
             if (!res.ok) throw new Error("HTTP " + res.status);
             const data = await res.json();
             const items = Array.isArray(data.items) ? data.items : [];
-            const next = data.nextCursor ?? null;
-            setMyPosts((prev) => (reset ? items : [...prev, ...items]));
-            setMyCursor(next);
-            setMyHasMore(Boolean(next));
-        } catch {} finally {
+            setMyPosts(items);
+        } catch {
+
+        } finally {
             setMyLoading(false);
+        }
+    };
+
+    const fetchMyComments = async () => {
+        try {
+            setMyCommentsLoading(true);
+            const params = new URLSearchParams();
+            params.set("limit", "20");
+            const res = await fetch(`${API_BASE}/my_comment?${params.toString()}`, { credentials: "include" });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
+            const items = Array.isArray(data.items) ? data.items : [];
+            setMyComments(items);
+        } catch {
+
+        } finally {
+            setMyCommentsLoading(false);
         }
     };
 
@@ -95,7 +113,6 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                 evaluatePasswordStrength(value);
             }
         }
-
         if (name === "name") {
             setValidationState(prev => ({ ...prev, nameChecked: false }));
         }
@@ -184,14 +201,15 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
 
     if (!user) return null;
 
-     const openMyPosts = () => {
+    const openMyPosts = () => {
         const willOpen = !showMyPosts;
         setShowMyPosts(willOpen);
         setShowGameInfo(false);
         setShowUpdateProfile(false);
         if (willOpen && !myFirstLoadedRef.current) {
             myFirstLoadedRef.current = true;
-            fetchMyPosts(true);
+            fetchMyPosts();
+            fetchMyComments();
         }
     };
 
@@ -227,9 +245,7 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                     <div
                         className="user_img"
                         style={{
-                        backgroundImage: previewImage.startsWith("blob:") || previewImage.startsWith("http")
-                            ? `url(${previewImage})`
-                            : `url(${previewImage})`
+                            backgroundImage: previewImage.startsWith("blob:") || previewImage.startsWith("http") ? `url(${previewImage})` : `url(${previewImage})`
                         }}
                     />
                     <div className="profile_info">
@@ -265,33 +281,51 @@ const Profile = ({ user, onSignout, onClose, onDelete }) => {
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                         >
+                            {/* 내 게시글 */}
                             <div className="myposts_thead">
                                 <div className="cell num">번호</div>
                                 <div className="cell title">제목</div>
                                 <div className="cell date">작성일자</div>
                             </div>
-
-                            <div className="myposts_tbody">
+                            <div className="myposts_tbody scroll3">
                                 {myLoading && <div className="myposts_loading">불러오는 중…</div>}
-
                                 {!myLoading && myPosts.length === 0 && (
-                                <div className="myposts_empty">작성한 게시글이 없습니다.</div>
+                                    <div className="myposts_empty">작성한 게시글이 없습니다.</div>
                                 )}
-
-                                {!myLoading &&
-                                    myPosts.map((p, idx) => (
-                                        <div key={p.id} className="myposts_row" onClick={() => openNoticeFromProfile(p.id)}>
-                                            <div className="cell num">{myPosts.length - idx}</div>
-                                            <div className="cell title">{p.title}</div>
-                                            <div className="cell date">{formatDateShort(p.dateTime)}</div>
-                                        </div>
-                                    ))
-                                }
-                                {myHasMore && !myLoading && (
-                                    <div className="myposts_more">
-                                        <button className="notice_btn" onClick={() => fetchMyPosts(false)}>더 보기</button>
+                                {!myLoading && myPosts.map((p, idx) => (
+                                    <div key={p.id} className="myposts_row" onClick={() => openNoticeFromProfile(p.id)}>
+                                        <div className="cell num">{myPosts.length - idx}</div>
+                                        <div className="cell title">{p.title}</div>
+                                        <div className="cell date">{formatDateShort(p.dateTime)}</div>
                                     </div>
+                                ))}
+                            </div>
+
+                            <hr className="divider" />
+
+                            {/* 내 댓글 */}
+                            <div className="myposts_thead">
+                                <div className="cell num">번호</div>
+                                <div className="cell title">내용</div>
+                                <div className="cell date">작성일자</div>
+                            </div>
+                            <div className="myposts_tbody scroll3">
+                                {myCommentsLoading && <div className="myposts_loading">불러오는 중…</div>}
+                                {!myCommentsLoading && myComments.length === 0 && (
+                                    <div className="myposts_empty">작성한 댓글이 없습니다.</div>
                                 )}
+                                {!myCommentsLoading && myComments.map((c, idx) => (
+                                    <div
+                                        key={c.id}
+                                        className="myposts_row"
+                                        title="댓글이 달린 게시글 보기"
+                                        onClick={() => openNoticeFromProfile(c.noticeId)}
+                                    >
+                                        <div className="cell num">{myComments.length - idx}</div>
+                                        <div className="cell title">{c.contents}</div>
+                                        <div className="cell date">{formatDateShort(c.dateTime)}</div>
+                                    </div>
+                                ))}
                             </div>
                         </motion.div>
                     )}

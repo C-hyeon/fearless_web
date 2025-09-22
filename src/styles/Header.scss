@@ -277,12 +277,13 @@
     color: #ffffff;
     font-family: Nesting.$main_font_Bold;
     border-bottom: 1px solid #2a2a2a;
-    .cell {
-        text-align: center;
-    }
+    .cell { text-align: center; }
 }
 
 .myposts_tbody {
+    max-height: 180px;
+    overflow-y: auto;
+
     .myposts_loading,
     .myposts_empty {
         padding: 18px;
@@ -298,8 +299,8 @@
         cursor: pointer;
         transition: background-color 0.2s ease;
 
-        &:nth-child(even) {background: #eeeeee;}
-        &:hover {background: #e5e5e5;}
+        &:nth-child(even) { background: #eeeeee; }
+        &:hover { background: #e5e5e5; }
 
         .cell {
             &.num, &.date { text-align: center; }
@@ -310,12 +311,6 @@
                 white-space: nowrap;
             }
         }
-    }
-
-    .myposts_more {
-        display: flex;
-        justify-content: center;
-        padding: 10px;
     }
 }
 

@@ -10,6 +10,10 @@ const ENDPOINTS = {
     CREATE: `${API_BASE}/create_notice`,
     DETAIL: (id) => `${API_BASE}/${id}`,
     STATUS: `${API_BASE}/status`,
+    COMMENTS_LIST: (id) => `${API_BASE}/${id}/comments`,
+    COMMENT_CREATE: (id) => `${API_BASE}/${id}/comments`,
+    COMMENT_UPDATE: (id, cid) => `${API_BASE}/${id}/comments/${cid}`,
+    COMMENT_DELETE: (id, cid) => `${API_BASE}/${id}/comments/${cid}`,
 };
 
 const toDate = (v) => {
@@ -53,6 +57,14 @@ const Notice = () => {
     const [me, setMe] = useState(null);
     const [error, setError] = useState("");
 
+    const [comments, setComments] = useState([]);
+    const [commentsCursor, setCommentsCursor] = useState(null);
+    const [commentsHasMore, setCommentsHasMore] = useState(true);
+    const [commentsLoading, setCommentsLoading] = useState(false);
+    const [newComment, setNewComment] = useState("");
+    const [editingId, setEditingId] = useState(null);
+    const [editingValue, setEditingValue] = useState("");
+
     const header = useMemo(() => ["번호", "제목", "작성자", "작성일", "조회수"], []);
 
     const fetchList = async (reset = false) => {
@@ -95,6 +107,7 @@ const Notice = () => {
     }, []);
 
     const isLoggedIn = !!me?.uid;
+
     const handleOpenWrite = () => {
         if (!isLoggedIn) {
             alert("로그인 후 이용 가능합니다.");
@@ -115,10 +128,7 @@ const Notice = () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({
-                title: title.trim(),
-                contents: contents.trim(),
-            }),
+            body: JSON.stringify({title: title.trim(), contents: contents.trim(),}),
         });
         if (!res.ok) {
             setError("글 등록에 실패했습니다. 로그인/권한 또는 서버 상태를 확인하세요.");
@@ -131,6 +141,99 @@ const Notice = () => {
         setLoading(true);
         setCursor(null);
         await fetchList(true);
+    };
+
+    const resetCommentsState = () => {
+        setComments([]);
+        setCommentsCursor(null);
+        setCommentsHasMore(true);
+        setCommentsLoading(false);
+        setNewComment("");
+        setEditingId(null);
+        setEditingValue("");
+    };
+
+    const fetchComments = async (postId, reset = false) => {
+        if (!postId) return;
+        try {
+            setCommentsLoading(true);
+            const params = new URLSearchParams();
+            params.set("limit", "20");
+            if (!reset && commentsCursor) params.set("cursor", String(commentsCursor));
+            const res = await fetch(`${ENDPOINTS.COMMENTS_LIST(postId)}?${params.toString()}`, { credentials: "include" });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
+            const items = Array.isArray(data.items) ? data.items : [];
+            const next = data.nextCursor ?? null;
+            setComments((prev) => (reset ? items : [...prev, ...items]));
+            setCommentsCursor(next);
+            setCommentsHasMore(Boolean(next));
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setCommentsLoading(false);
+        }
+    };
+
+    const submitNewComment = async () => {
+        if (!isLoggedIn) return alert("로그인 후 이용 가능합니다.");
+        if (!detail?.id) return;
+        if (!newComment.trim()) return;
+        try {
+            const res = await fetch(ENDPOINTS.COMMENT_CREATE(detail.id), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ contents: newComment.trim() }),
+            });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            setNewComment("");
+            setCommentsCursor(null);
+            await fetchComments(detail.id, true);
+        } catch (e) {
+            alert("댓글 등록에 실패했습니다.");
+        }
+    };
+
+    const startEditComment = (c) => {
+        setEditingId(c.id);
+        setEditingValue(c.contents || "");
+    };
+    const cancelEditComment = () => {
+        setEditingId(null);
+        setEditingValue("");
+    };
+
+    const saveEditComment = async () => {
+        if (!detail?.id || !editingId) return;
+        if (!editingValue.trim()) return;
+        try {
+            const res = await fetch(ENDPOINTS.COMMENT_UPDATE(detail.id, editingId), {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ contents: editingValue.trim() }),
+            });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            setEditingId(null);
+            setEditingValue("");
+            setCommentsCursor(null);
+            await fetchComments(detail.id, true);
+        } catch (e) {
+            alert("댓글 수정에 실패했습니다.");
+        }
+    };
+
+    const deleteComment = async (cid) => {
+        if (!detail?.id || !cid) return;
+        if (!confirm("댓글을 삭제할까요?")) return;
+        try {
+            const res = await fetch(ENDPOINTS.COMMENT_DELETE(detail.id, cid), {method: "DELETE",credentials: "include",});
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            setComments((prev) => prev.filter((c) => c.id !== cid));
+        } catch (e) {
+            alert("댓글 삭제에 실패했습니다.");
+        }
     };
 
     const openDetailFetch = async (post) => {
@@ -148,6 +251,8 @@ const Notice = () => {
             setPosts((prev) =>
                 prev.map((p) => (String(p.id) === id ? { ...p, views: (p.views || 0) + 1 } : p))
             );
+            resetCommentsState();
+            fetchComments(data.id, true);
         } catch {
             alert("상세 요청 중 네트워크 오류가 발생했습니다.");
         }
@@ -165,6 +270,8 @@ const Notice = () => {
             setDetail(data);
             setOpenDetail(true);
             setPosts((prev) => prev.map((p) => (String(p.id) === String(id) ? { ...p, views: (p.views || 0) + 1 } : p)));
+            resetCommentsState();
+            fetchComments(data.id, true);
         } catch {
             alert("상세 요청 중 네트워크 오류가 발생했습니다.");
         }
@@ -189,10 +296,10 @@ const Notice = () => {
         if (!isOwner) return;
         setOpenDetail(false);
         setTimeout(() => {
-        setEditId(detail.id);
-        setEditTitle(detail.title || "");
-        setEditContents(detail.contents || "");
-        setOpenEdit(true);
+            setEditId(detail.id);
+            setEditTitle(detail.title || "");
+            setEditContents(detail.contents || "");
+            setOpenEdit(true);
         }, 180);
     };
 
@@ -355,7 +462,7 @@ const Notice = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.18 }}
-                            onClick={() => setOpenDetail(false)}
+                            onClick={() => {setOpenDetail(false); resetCommentsState();}}
                         >
                             <motion.div
                                 className="notice_modal_card"
@@ -375,7 +482,7 @@ const Notice = () => {
                                                 <button className="notice_btn" onClick={() => handleDelete(detail.id)}>삭제</button>
                                             </>
                                         )}
-                                        <button className="icon_btn" aria-label="닫기" onClick={() => setOpenDetail(false)}>✕</button>
+                                        <button className="icon_btn" aria-label="닫기" onClick={() => {setOpenDetail(false); resetCommentsState();}}>✕</button>
                                     </div>
                                 </div>
 
@@ -389,8 +496,81 @@ const Notice = () => {
                                     {String(detail.contents || "").split("\n").map((line, i) => (<p key={i}>{line}</p>))}
                                 </div>
 
+                                <div className="comments_section">
+                                    {isLoggedIn ? (
+                                        <div className="comment_input">
+                                            <textarea
+                                                className="comment_textarea"
+                                                placeholder="댓글을 입력하세요"
+                                                value={newComment}
+                                                onChange={(e) => setNewComment(e.target.value)}
+                                                rows={3}
+                                            />
+                                            <button className="notice_btn" onClick={submitNewComment}>
+                                                등록
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="comment_hint">로그인 후 댓글을 작성할 수 있습니다.</div>
+                                    )}
+
+                                    <div className="comments_list">
+                                        {commentsLoading && <div className="comments_empty">불러오는 중…</div>}
+                                        {!commentsLoading && comments.length === 0 && (<div className="comments_empty">등록된 댓글이 없습니다.</div>)}
+
+                                        {!commentsLoading && comments.map((c) => {
+                                            const canEdit = isLoggedIn && String(c.userId) === String(me?.uid);
+                                            const isEditing = editingId === c.id;
+                                            return (
+                                                <div key={c.id} className="comment_item">
+                                                    <div className="comment_top">
+                                                        <div className="author">★ {c.userName}</div>
+                                                        <div className="date">{formatDateTime(c.dateTime)}</div>
+                                                    </div>
+
+                                                    <div className="comment_body">
+                                                        <div className="content">
+                                                            {isEditing ? (
+                                                                <textarea
+                                                                    className="comment_editarea"
+                                                                    rows={3}
+                                                                    value={editingValue}
+                                                                    onChange={(e) => setEditingValue(e.target.value)}
+                                                                />
+                                                            ) : (
+                                                                <pre className="comment_text">{c.contents}</pre>
+                                                            )}
+                                                        </div>
+                                                        {canEdit && (
+                                                            <div className="actions">
+                                                                {isEditing ? (
+                                                                    <>
+                                                                        <button className="notice_btn" onClick={saveEditComment}>저장</button>
+                                                                        <button className="notice_btn" onClick={cancelEditComment}>취소</button>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <button className="notice_btn" onClick={() => startEditComment(c)}>수정</button>
+                                                                        <button className="notice_btn" onClick={() => deleteComment(c.id)}>삭제</button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {commentsHasMore && !commentsLoading && (
+                                            <div className="comments_more">
+                                                <button className="notice_btn" onClick={() => fetchComments(detail.id, false)}>더 보기</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="modal_footer">
-                                    <button className="notice_btn" onClick={() => setOpenDetail(false)}>닫기</button>
+                                    <button className="notice_btn" onClick={() => {setOpenDetail(false); resetCommentsState();}}>닫기</button>
                                 </div>
                             </motion.div>
                         </motion.div>
