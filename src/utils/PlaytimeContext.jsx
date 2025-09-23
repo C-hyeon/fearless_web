@@ -72,15 +72,33 @@ export const PlaytimeProvider = ({ children }) => {
   useEffect(() => {
     if (loading || !isLoggedIn) return;
     const interval = setInterval(() => {
-      api.post("/update-last-activity", {})
-        .then(() => {
-          console.log("lastUpdatedAt 갱신");
-        })
-        .catch((err) => {
-          console.error("갱신 실패", err);
-        });
+      api.post("/update-last-activity", {}).then(() => {console.log("lastUpdatedAt 갱신");}).catch((err) => {console.error("갱신 실패", err);});
     }, 60_000);
     return () => clearInterval(interval);
+  }, [loading, isLoggedIn]);
+
+  useEffect(() => {
+    if (loading || !isLoggedIn) return;
+    let active = true;
+
+    const longPoll = async () => {
+      try {
+        const res = await api.get("/playtime-longpoll");
+        if (!active) return;
+
+        if (res.data.playtime !== undefined) {
+          setCurrentPlaytime(res.data.playtime);
+          console.log("서버에서 플레이타임 수신:", res.data.playtime);
+        }
+
+        if (active) longPoll();
+      } catch (err) {
+        console.error("long polling 에러:", err);
+        if (active) setTimeout(longPoll, 5000);
+      }
+    };
+    longPoll();
+    return () => {active = false;};
   }, [loading, isLoggedIn]);
 
   if (loading) return null;
