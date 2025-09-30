@@ -30,29 +30,50 @@ router.post("/update-last-activity", authenticateToken, async (req, res) => {
     }
 });
 
-// 10분 주기 플레이타임 최신화 (Long Polling)
+// 플레이타임 검증
 router.get("/playtime-longpoll", authenticateToken, async (req, res) => {
+    const userRef = db.collection("users").doc(req.user.uid);
+
+    const since = Number.isFinite(Number(req.query.since)) ? Number(req.query.since) : null;
+
+    let finished = false;
+    let timeoutId = null;
+    let unsubscribe = null;
+    res.setHeader("Cache-Control", "no-store");
+
+    function cleanup() {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (typeof unsubscribe === "function") {try { unsubscribe(); } catch {}}
+    }
+
+    function finish(status, body) {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        if (status === 204 || body === undefined) return res.sendStatus(status);
+        return res.status(status).json(body);
+    }
+
+    res.on("close", () => { cleanup(); finished = true; });
+    res.on("finish", () => { cleanup(); finished = true; });
+
     try {
-        const userRef = db.collection("users").doc(req.user.uid);
+        unsubscribe = userRef.onSnapshot(
+            (snapshot) => {
+                const data = snapshot.data() || {};
+                const playtime = typeof data.playtime === "number" ? data.playtime : 0;
+                if (since !== null && playtime === since) return;
 
-        const unsubscribe = userRef.onSnapshot(async (snapshot) => {
-            const data = snapshot.data() || {};
-            const playtimeInSeconds = typeof data.playtime === "number" ? data.playtime : 0;
+                finish(200, { playtime });
+            },
+            (err) => {
+                finish(500, { message: "snapshot error", error: String(err?.message || err) });
+            }
+        );
 
-            res.json({ playtime: playtimeInSeconds });
-            unsubscribe();
-        });
-
-        setTimeout(async () => {
-            const snap = await userRef.get();
-            const data = snap.data() || {};
-            const playtimeInSeconds = typeof data.playtime === "number" ? data.playtime : 0;
-
-            res.json({ playtime: playtimeInSeconds, timeout: true });
-            unsubscribe();
-        }, 600_000);
+        timeoutId = setTimeout(() => {finish(204);}, 600_000); 
     } catch (err) {
-        res.status(500).json({ message: "long polling 실패", error: err.message });
+        finish(500, { message: "long polling 실패", error: err.message });
     }
 });
 

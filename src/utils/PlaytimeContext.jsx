@@ -83,23 +83,30 @@ export const PlaytimeProvider = ({ children }) => {
 
     const longPoll = async () => {
       try {
-        const res = await api.get("/playtime-longpoll");
+        const res = await api.get("/playtime-longpoll", {
+          params: { since: currentPlaytime },
+          timeout: 610_000,
+          validateStatus: (s) => (s >= 200 && s < 300) || s === 204,
+        });
+
         if (!active) return;
 
-        if (res.data.playtime !== undefined) {
+        if (res.status === 204) {
+          // console.log("변경 없음(204), 재요청");
+        } else if (res.data?.playtime !== undefined) {
           setCurrentPlaytime(res.data.playtime);
-          console.log("서버에서 플레이타임 수신:", res.data.playtime);
         }
 
         if (active) longPoll();
       } catch (err) {
-        console.error("long polling 에러:", err);
+        console.error("long polling 에러:", err?.message || err);
         if (active) setTimeout(longPoll, 5000);
       }
     };
+
     longPoll();
-    return () => {active = false;};
-  }, [loading, isLoggedIn]);
+    return () => { active = false; };
+  }, [loading, isLoggedIn, currentPlaytime]);
 
   if (loading) return null;
 
