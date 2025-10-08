@@ -12,7 +12,6 @@ dist
 dist-ssr
 *.local
 
-firebaseDocument.json
 
 # Editor directories and files
 .vscode/*
@@ -33,4 +32,3 @@ firebaseDocument.json
 server/.env
 server/serviceAccountKey.json
 server/public/
-server/test.js
