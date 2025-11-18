@@ -32,49 +32,46 @@ router.post("/update-last-activity", authenticateToken, async (req, res) => {
 
 // 플레이타임 검증
 router.get("/playtime-longpoll", authenticateToken, async (req, res) => {
-    const userRef = db.collection("users").doc(req.user.uid);
+    const t_request = Date.now();                       // 요청 도착 시간
+    let t_snapshot = null;                              // DB 변경 감지 시간
 
-    const since = Number.isFinite(Number(req.query.since)) ? Number(req.query.since) : null;
+    const userRef = db.collection("users").doc(req.user.uid);
+    const since = Number(req.query.since);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Expose-Headers", "X-Server-Process-Time, X-DB-To-Server-Time");
 
     let finished = false;
     let timeoutId = null;
     let unsubscribe = null;
-    res.setHeader("Cache-Control", "no-store");
-
-    function cleanup() {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (typeof unsubscribe === "function") {try { unsubscribe(); } catch {}}
-    }
 
     function finish(status, body) {
         if (finished) return;
         finished = true;
-        cleanup();
-        if (status === 204 || body === undefined) return res.sendStatus(status);
+
+        const t_response = Date.now();                  // 응답 전송 직전 시간
+
+        const serverProcess = t_response - t_request;   // 서버 내 총 소요 시간
+        const dbToServer = t_snapshot ? t_snapshot - t_request : 0;
+
+        res.setHeader("X-Server-Process-Time", serverProcess);
+        res.setHeader("X-DB-To-Server-Time", dbToServer);
+
+        if (status === 204) return res.sendStatus(status);
         return res.status(status).json(body);
     }
 
-    res.on("close", () => { cleanup(); finished = true; });
-    res.on("finish", () => { cleanup(); finished = true; });
+    unsubscribe = userRef.onSnapshot(
+        (snapshot) => {
+            t_snapshot = Date.now();                    // Firestore 변경 감지 시간
+            const data = snapshot.data() || {};
+            const playtime = data.playtime ?? 0;
+            if (since !== null && playtime === since) return;
+            finish(200, { playtime });
+        },
+        (err) => finish(500, { error: String(err?.message || err) })
+    );
 
-    try {
-        unsubscribe = userRef.onSnapshot(
-            (snapshot) => {
-                const data = snapshot.data() || {};
-                const playtime = typeof data.playtime === "number" ? data.playtime : 0;
-                if (since !== null && playtime === since) return;
-
-                finish(200, { playtime });
-            },
-            (err) => {
-                finish(500, { message: "snapshot error", error: String(err?.message || err) });
-            }
-        );
-
-        timeoutId = setTimeout(() => {finish(204);}, 600_000); 
-    } catch (err) {
-        finish(500, { message: "long polling 실패", error: err.message });
-    }
+    timeoutId = setTimeout(() => finish(204), 600_000);
 });
 
 module.exports = router;
