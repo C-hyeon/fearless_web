@@ -83,17 +83,30 @@ export const PlaytimeProvider = ({ children }) => {
 
     const longPoll = async () => {
       try {
+        const t_requestSent = performance.now(); // 요청 전송 시각
+
         const res = await api.get("/playtime-longpoll", {
           params: { since: currentPlaytime },
           timeout: 610_000,
           validateStatus: (s) => (s >= 200 && s < 300) || s === 204,
         });
 
+        const t_responseArrived = performance.now(); // 응답 도착 시각
+        const totalRoundTrip = t_responseArrived - t_requestSent;
+
+        console.log(`[HES] 전체 왕복 시간: ${totalRoundTrip.toFixed(2)} ms`);
+
+        if (res.headers["x-server-process-time"]) {
+          console.log(`[HES] 서버 내부 처리 시간: ${res.headers["x-server-process-time"]} ms`);
+        }
+
+        if (res.headers["x-db-to-server-time"]) {
+          console.log(`[HES] Firestore→서버 전달 시간: ${res.headers["x-db-to-server-time"]} ms`);
+        }
+
         if (!active) return;
 
-        if (res.status === 204) {
-          // console.log("변경 없음(204), 재요청");
-        } else if (res.data?.playtime !== undefined) {
+        if (res.status !== 204) {
           setCurrentPlaytime(res.data.playtime);
         }
 
