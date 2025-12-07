@@ -4,6 +4,7 @@ const router = express.Router();
 const { db } = require("../firebase");
 const authenticateToken = require("../utils/authenticate");
 const formatSeconds = require("../utils/formatSeconds");
+const { FieldValue } = admin.firestore;
 
 // 웹 로그인 시 플레이타임 저장
 router.post("/save-playtime", authenticateToken, async (req, res) => {
@@ -30,10 +31,25 @@ router.post("/update-last-activity", authenticateToken, async (req, res) => {
     }
 });
 
+// 로그인 직후 60초마다 플레이타임 증가 테스트 라우터
+router.post("/playtime-increment-test", authenticateToken, async (req, res) => {
+    try {
+        const amount = Number(req.body.amount ?? 60);
+        const userRef = db.collection("users").doc(req.user.uid);
+
+        await userRef.update({ playtime: FieldValue.increment(amount) });
+
+        return res.sendStatus(204);
+    } catch (err) {
+        console.error("playtime-increment-test 오류:", err);
+        return res.status(500).json({ error: "increment failed" });
+    }
+});
+
 // 플레이타임 검증
 router.get("/playtime-longpoll", authenticateToken, async (req, res) => {
-    const t_request = Date.now();                       // 요청 도착 시간
-    let t_snapshot = null;                              // DB 변경 감지 시간
+    const t_request = Date.now();
+    let t_snapshot = null;
 
     const userRef = db.collection("users").doc(req.user.uid);
     const since = Number(req.query.since);
@@ -48,9 +64,11 @@ router.get("/playtime-longpoll", authenticateToken, async (req, res) => {
         if (finished) return;
         finished = true;
 
-        const t_response = Date.now();                  // 응답 전송 직전 시간
+        if (unsubscribe) { try { unsubscribe(); } catch (_) {} }
+        if (timeoutId) { clearTimeout(timeoutId); }
 
-        const serverProcess = t_response - t_request;   // 서버 내 총 소요 시간
+        const t_response = Date.now();
+        const serverProcess = t_response - t_request;
         const dbToServer = t_snapshot ? t_snapshot - t_request : 0;
 
         res.setHeader("X-Server-Process-Time", serverProcess);
@@ -62,10 +80,11 @@ router.get("/playtime-longpoll", authenticateToken, async (req, res) => {
 
     unsubscribe = userRef.onSnapshot(
         (snapshot) => {
-            t_snapshot = Date.now();                    // Firestore 변경 감지 시간
+            t_snapshot = Date.now();
             const data = snapshot.data() || {};
             const playtime = data.playtime ?? 0;
-            if (since !== null && playtime === since) return;
+
+            if (!Number.isNaN(since) && playtime === since) return;
             finish(200, { playtime });
         },
         (err) => finish(500, { error: String(err?.message || err) })
